@@ -4,6 +4,17 @@ DEFINES += "PUREDATA"
 DEFINES += "PD"
 DEFINES += "USINGQT"
 
+# Version information
+VERSION = 0.8.2
+QMAKE_TARGET_BUNDLE_PREFIX = com.fhnw.hsm.rnd
+QMAKE_BUNDLE = rwacreator
+
+# macOS Info.plist
+macx {
+    QMAKE_INFO_PLIST = Info.plist.in
+    QMAKE_TARGET_BUNDLE_PREFIX = com.fhnw.hsm.rnd
+}
+
 extralib.target = extra
 extralib.commands = echo "Precompiling libpd and portaudio.."; \
                             $$PWD/makeportaudioandlibpd.sh

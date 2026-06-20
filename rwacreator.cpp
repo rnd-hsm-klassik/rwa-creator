@@ -103,7 +103,7 @@ void RwaCreator::createInitFolder()
 
 void RwaCreator::saveLayoutAndSettings()
 {
-    QSettings settings("Intrinsic Audio", "Rwa Creator");
+    QSettings settings;
     settings.setValue("geometry", saveGeometry());
     settings.setValue("windowState", saveState());
     settings.setValue("lastgame", backend->completeFilePath);
@@ -117,7 +117,7 @@ void RwaCreator::saveLayoutAndSettings()
 
 void RwaCreator::loadLayoutAndSettings()
 {
-    QSettings settings("Intrinsic Audio", "Rwa Creator");
+    QSettings settings;
     restoreGeometry(settings.value("geometry").toByteArray());
     restoreState(settings.value("windowState").toByteArray());
 
@@ -323,7 +323,7 @@ void RwaCreator::selectInputDevice(qint32 index)
 
 void RwaCreator::selectSampleRate(qint32 index)
 {
-    QSettings settings("Intrinsic Audio", "Rwa Creator");
+    QSettings settings;
 
     if(index == 0)
         backend->sampleRate = 44100;

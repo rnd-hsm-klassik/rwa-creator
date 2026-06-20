@@ -278,23 +278,25 @@ installs.files += $$PWD/portaudio/lib/.libs/libportaudio.2.dylib
 installs.path = $$OUT_PWD/rwacreator.app/Contents/Frameworks
 INSTALLS += installs
 
-copydata.commands = $(COPY_DIR) $$PWD/images $$OUT_PWD/rwacreator.app/Contents/MacOS \
+copydata.commands = test -d $$OUT_PWD/rwacreator.app/Contents/Resources/puredata || mkdir -p $$OUT_PWD/rwacreator.app/Contents/Resources/puredata \
+&& test -d $$OUT_PWD/rwacreator.app/Contents/Resources/images || mkdir -p $$OUT_PWD/rwacreator.app/Contents/Resources/images \
 && test -d $$OUT_PWD/rwacreator.app/Contents/Frameworks || mkdir -p $$OUT_PWD/rwacreator.app/Contents/Frameworks \
 && $(COPY_FILE) $$PWD/libpd/libs/libpd.dylib $$OUT_PWD/rwacreator.app/Contents/Frameworks \
 && $(COPY_FILE) $$PWD/portaudio/lib/.libs/libportaudio.2.dylib $$OUT_PWD/rwacreator.app/Contents/Frameworks \
-&& $(COPY_FILE) $$PWD/puredata/fabian_dir256.txt $$OUT_PWD/rwacreator.app/Contents/MacOS \
-&& $(COPY_FILE) $$PWD/puredata/rwaloopplayermono.pd $$OUT_PWD/rwacreator.app/Contents/MacOS \
-&& $(COPY_FILE) $$PWD/puredata/rwaloopplayerstereo.pd $$OUT_PWD/rwacreator.app/Contents/MacOS \
-&& $(COPY_FILE) $$PWD/puredata/rwaplayer5_1channelbinaural_fabian.pd $$OUT_PWD/rwacreator.app/Contents/MacOS \
-&& $(COPY_FILE) $$PWD/puredata/rwaplayer5_1channelbinaural.pd $$OUT_PWD/rwacreator.app/Contents/MacOS \
-&& $(COPY_FILE) $$PWD/puredata/rwaplayer7channelbinaural_fabian.pd $$OUT_PWD/rwacreator.app/Contents/MacOS \
-&& $(COPY_FILE) $$PWD/puredata/rwaplayermonobinaural_fabian.pd $$OUT_PWD/rwacreator.app/Contents/MacOS \
-&& $(COPY_FILE) $$PWD/puredata/rwaplayermonobrir1.pd $$OUT_PWD/rwacreator.app/Contents/MacOS \
-&& $(COPY_FILE) $$PWD/puredata/rwaplayermonobinaural.pd $$OUT_PWD/rwacreator.app/Contents/MacOS \
-&& $(COPY_FILE) $$PWD/puredata/rwaplayerstereobinaural_fabian.pd $$OUT_PWD/rwacreator.app/Contents/MacOS \
-&& $(COPY_FILE) $$PWD/puredata/rwaplayerstereobinaural.pd $$OUT_PWD/rwacreator.app/Contents/MacOS \
-&& $(COPY_FILE) $$PWD/puredata/stereoout.pd $$OUT_PWD/rwacreator.app/Contents/MacOS \
-&& $(COPY_FILE) $$PWD/puredata/rwagetmetadata.pd $$OUT_PWD/rwacreator.app/Contents/MacOS
+&& $(COPY_DIR) $$PWD/images/* $$OUT_PWD/rwacreator.app/Contents/Resources/images \
+&& $(COPY_FILE) $$PWD/puredata/fabian_dir256.txt $$OUT_PWD/rwacreator.app/Contents/Resources/puredata \
+&& $(COPY_FILE) $$PWD/puredata/rwaloopplayermono.pd $$OUT_PWD/rwacreator.app/Contents/Resources/puredata \
+&& $(COPY_FILE) $$PWD/puredata/rwaloopplayerstereo.pd $$OUT_PWD/rwacreator.app/Contents/Resources/puredata \
+&& $(COPY_FILE) $$PWD/puredata/rwaloopplayerstereoogg.pd $$OUT_PWD/rwacreator.app/Contents/Resources/puredata \
+&& $(COPY_FILE) $$PWD/puredata/rwaloopplayermonoogg.pd $$OUT_PWD/rwacreator.app/Contents/Resources/puredata \
+&& $(COPY_FILE) $$PWD/puredata/rwaplayer5_1channelbinaural_fabian.pd $$OUT_PWD/rwacreator.app/Contents/Resources/puredata \
+&& $(COPY_FILE) $$PWD/puredata/rwaplayer7channelbinaural_fabian.pd $$OUT_PWD/rwacreator.app/Contents/Resources/puredata \
+&& $(COPY_FILE) $$PWD/puredata/rwaplayermonobinaural_fabian.pd $$OUT_PWD/rwacreator.app/Contents/Resources/puredata \
+&& $(COPY_FILE) $$PWD/puredata/rwaplayermonobinauralogg_fabian.pd $$OUT_PWD/rwacreator.app/Contents/Resources/puredata \
+&& $(COPY_FILE) $$PWD/puredata/rwaplayerstereobinauralogg_fabian.pd $$OUT_PWD/rwacreator.app/Contents/Resources/puredata \
+&& $(COPY_FILE) $$PWD/puredata/rwaplayermonobrir1.pd $$OUT_PWD/rwacreator.app/Contents/Resources/puredata \
+&& $(COPY_FILE) $$PWD/puredata/rwaplayerstereobinaural_fabian.pd $$OUT_PWD/rwacreator.app/Contents/Resources/puredata \
+&& $(COPY_FILE) $$PWD/puredata/stereoout.pd $$OUT_PWD/rwacreator.app/Contents/Resources/puredata
 
 first.depends = $(first) copydata
 export(first.depends)

@@ -121,7 +121,11 @@ void DeviceHandler::setDevice(DeviceInfo1 *device)
         connect(m_control, &QLowEnergyController::discoveryFinished,
                 this, &DeviceHandler::serviceScanDone);
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
         connect(m_control, &QLowEnergyController::errorOccurred, this,
+#else
+        connect(m_control, QOverload<QLowEnergyController::Error>::of(&QLowEnergyController::error), this,
+#endif
                 [this](QLowEnergyController::Error error) {
                     Q_UNUSED(error);
                     setError("Cannot connect to remote device.");
@@ -202,10 +206,18 @@ void DeviceHandler::serviceScanDone()
 void DeviceHandler::serviceStateChanged(QLowEnergyService::ServiceState s)
 {
     switch (s) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     case QLowEnergyService::RemoteServiceDiscovering:
+#else
+    case QLowEnergyService::DiscoveringServices:
+#endif
         setInfo(tr("Discovering services..."));
         break;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     case QLowEnergyService::RemoteServiceDiscovered:
+#else
+    case QLowEnergyService::ServiceDiscovered:
+#endif
     {
         setInfo(tr("Service discovered."));
 
@@ -306,7 +318,11 @@ bool DeviceHandler::alive() const
 #endif
 
     if (m_service)
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
         return m_service->state() == QLowEnergyService::RemoteServiceDiscovered;
+#else
+        return m_service->state() == QLowEnergyService::ServiceDiscovered;
+#endif
 
     return false;
 }

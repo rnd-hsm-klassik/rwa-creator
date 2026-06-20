@@ -12,6 +12,7 @@
 #ifndef AFXSTATE
 #define AFXSTATE
 
+#include <list>
 #include "rwaasset1.h"
 
 #define RWASTATETYPE_FALLBACK 1

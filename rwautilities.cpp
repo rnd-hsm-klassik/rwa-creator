@@ -1,11 +1,13 @@
 #include "rwautilities.h"
 
 #ifdef QT_VERSION
-#include<QDebug>
+#include <QDebug>
 #include <QRegularExpression>
+#include <QString>
 #endif
 #include "clipper/clipper.hpp"
 #include <filesystem>
+#include <iostream>
 
 using namespace ClipperLib;
 
@@ -24,7 +26,7 @@ void RwaUtilities::debug2Terminal(const std::string file, const std::string func
 #ifdef QT_VERSION
      qDebug() << file.c_str() << " "<< func.c_str() << " " << line << " " << message.c_str();
 #else
-     cout << file << " " << func << " " << line << " " << message;
+     std::cout << file << " " << func << " " << line << " " << message;
 #endif
 }
 
@@ -494,7 +496,9 @@ RwaUtilities::RwaUtilities()
 std::string RwaUtilities::getFileName1(std::string fullpath)
 {
     std::filesystem::path p(fullpath);
+#ifdef QT_VERSION
     qDebug() << QString::fromStdString(p.filename());
+#endif
     return p.filename();
 }
 

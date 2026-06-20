@@ -1,6 +1,7 @@
 #include "rwabackend.h"
 #include <QStandardPaths>
 #include <QThread>
+#include <QDir>
 
 RwaBackend *RwaBackend::instance = nullptr;
 

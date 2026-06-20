@@ -4,8 +4,9 @@ DEFINES += "PUREDATA"
 DEFINES += "PD"
 
 extralib.target = extra
-extralib.commands = echo "Precompiling libpd and portaudio.."; \
-                            $$PWD/makeportaudioandlibpd.sh
+extralib.commands = echo "Precompiling libpd, portaudio, and taglib.."; \
+                            $$PWD/makeportaudioandlibpd.sh; \
+                            $$PWD/maketaglib.sh
 extralib.depends =
 
 QMAKE_EXTRA_TARGETS += extralib
@@ -14,7 +15,7 @@ PRE_TARGETDEPS = extra
 QMAKE_CC=clang
 QMAKE_CXX=clang++
 
-CONFIG += c++11
+CONFIG += c++17
 #CONFIG(release):DEFINES += QT_NO_DEBUG_OUTPUT
 
 QMAKE_RPATHDIR += @executable_path/../Frameworks
@@ -33,6 +34,12 @@ INCLUDEPATH += $$PWD/libogg/include/
 INCLUDEPATH += $$PWD/vorbis/include/
 INCLUDEPATH += $$PWD/vorbis/lib/
 INCLUDEPATH += $$PWD/cpp-httplib
+INCLUDEPATH += $$PWD/taglib
+INCLUDEPATH += $$PWD/taglib/taglib
+INCLUDEPATH += $$PWD/taglib/taglib/toolkit
+INCLUDEPATH += $$PWD/taglib/taglib/ogg
+INCLUDEPATH += $$PWD/taglib/3rdparty
+INCLUDEPATH += $$PWD/taglib/build
 
 macx
 {
@@ -263,6 +270,7 @@ LIBS += -ltermcap
 LIBS += -lcurses
 LIBS += -lncurses
 LIBS += -lz
+LIBS += -L$$PWD/taglib/build/taglib -ltag
 
 installs.files += $$PWD/libpd/libs/libpd.dylib
 installs.files += $$PWD/portaudio/lib/.libs/libportaudio.2.dylib

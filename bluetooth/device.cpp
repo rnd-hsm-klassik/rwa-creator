@@ -83,8 +83,13 @@ Device::Device():
 
     connect(discoveryAgent, &QBluetoothDeviceDiscoveryAgent::deviceDiscovered,
             this, &Device::addDevice);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     connect(discoveryAgent, &QBluetoothDeviceDiscoveryAgent::errorOccurred,
             this, &Device::deviceScanError);
+#else
+    connect(discoveryAgent, QOverload<QBluetoothDeviceDiscoveryAgent::Error>::of(&QBluetoothDeviceDiscoveryAgent::error),
+            this, &Device::deviceScanError);
+#endif
     connect(discoveryAgent, &QBluetoothDeviceDiscoveryAgent::finished, this, &Device::deviceScanFinished);
 }
 
@@ -206,8 +211,13 @@ void Device::scanServices(const QString &address)
         qDebug() << controller->remoteName();
         connect(controller, &QLowEnergyController::connected,
                 this, &Device::deviceConnected);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
         connect(controller, &QLowEnergyController::errorOccurred,
                 this, &Device::errorReceived);
+#else
+        connect(controller, QOverload<QLowEnergyController::Error>::of(&QLowEnergyController::error),
+                this, &Device::errorReceived);
+#endif
         connect(controller, &QLowEnergyController::disconnected,
                 this, &Device::deviceDisconnected);
         connect(controller, &QLowEnergyController::serviceDiscovered,
@@ -337,7 +347,11 @@ void Device::serviceDetailsDiscovered(QLowEnergyService::ServiceState newState)
         // in case the service discovery failed
         // We have to queue the signal up to give UI time to even enter
         // the above mode
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
         if (newState != QLowEnergyService::DiscoveringService) {
+#else
+        if (newState != QLowEnergyService::DiscoveringServices) {
+#endif
             QMetaObject::invokeMethod(this, "characteristicsUpdated",
                                       Qt::QueuedConnection);
         }

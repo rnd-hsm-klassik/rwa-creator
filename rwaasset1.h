@@ -19,6 +19,7 @@
 
 #include "rwautilities.h"
 #include "rwaarea.h"
+#include <QtGlobal>
 #include <string.h>
 #include <stdint.h>
 

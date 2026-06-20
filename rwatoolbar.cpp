@@ -13,7 +13,7 @@
 #include <QStyle>
 #include <stdlib.h>
 #include <QToolButton>
-#include "QtGui/qactiongroup.h"
+#include <QActionGroup>
 #include "qoscclient.h"
 #include "qosctypes.h"
 

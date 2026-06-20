@@ -61,8 +61,13 @@ DeviceFinder::DeviceFinder(DeviceHandler *handler, QObject *parent):
     m_deviceDiscoveryAgent->setLowEnergyDiscoveryTimeout(5000);
 
     connect(m_deviceDiscoveryAgent, &QBluetoothDeviceDiscoveryAgent::deviceDiscovered, this, &DeviceFinder::addDevice);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     connect(m_deviceDiscoveryAgent, &QBluetoothDeviceDiscoveryAgent::errorOccurred, this,
             &DeviceFinder::scanError);
+#else
+    connect(m_deviceDiscoveryAgent, QOverload<QBluetoothDeviceDiscoveryAgent::Error>::of(&QBluetoothDeviceDiscoveryAgent::error), this,
+            &DeviceFinder::scanError);
+#endif
 
     connect(m_deviceDiscoveryAgent, &QBluetoothDeviceDiscoveryAgent::finished, this, &DeviceFinder::scanFinished);
     connect(m_deviceDiscoveryAgent, &QBluetoothDeviceDiscoveryAgent::canceled, this, &DeviceFinder::scanFinished);

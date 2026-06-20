@@ -4,8 +4,8 @@ RwaScene::RwaScene(std::vector<double> gps) :
    RwaArea()
 {
     locationType = RWALOCATIONTYPE_SCENE;
-    gpsLocation[0] = gps[0];
-    gpsLocation[1] = gps[1];
+    gpsLocation = gps;
+    currentViewCoordinates = gps;
     clear();
 }
 
@@ -17,6 +17,7 @@ RwaScene::RwaScene(std::string sceneName, std::vector<double> gps, int32_t zoom)
     backgroundState = nullptr;
     lastTouchedState = nullptr;
     gpsLocation = gps;
+    currentViewCoordinates = gps;
     this->zoom = zoom;
     areaType = RWAAREATYPE_CIRCLE;
     radius = 200;
@@ -98,7 +99,7 @@ RwaState *RwaScene::addState(std::string stateName,  std::vector<double> gpsCoor
     newState->setHeight(100);
     newState->isGpsState = true;
     newState->setType(RWASTATETYPE_GPS);
-    newState->setDefaultPlaybackType(RWAPLAYBACKTYPE_BINAURAL);
+    newState->setDefaultPlaybackType(RWAPLAYBACKTYPE_BINAURAL_FABIAN);
     newState->isImmortal = false;
     states.push_back(newState);
     lastTouchedState = newState;

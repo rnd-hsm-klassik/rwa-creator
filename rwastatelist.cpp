@@ -11,10 +11,14 @@ RwaStateList::RwaStateList(QWidget* parent, RwaScene *scene) :
 
     connect(backend, SIGNAL(sendSelectedStates(QStringList)),
               this, SLOT(setSelectedStates(QStringList)));
+
+    connect(backend, SIGNAL(sendCurrentSceneWithoutRepositioning(RwaScene *)),
+              this, SLOT(setCurrentScene(RwaScene *)));
 }
 
 void RwaStateList::ListWidgetEditEnd(QWidget *editor, QAbstractItemDelegate::EndEditHint hint)
 {   
+    (void) hint;
     QString newName = reinterpret_cast<QLineEdit*>(editor)->text();
     if(currentState->objectName() != newName.toStdString())
     {
@@ -67,14 +71,6 @@ void RwaStateList::setCurrentScene(RwaScene *scene)
         item->setFlags( item->flags() | Qt::ItemIsEditable );
         addItem(item);
     }
-
-    if(QObject::sender() != this->backend)
-    {
-        qDebug();
-        emit sendCurrentState(scene->lastTouchedState);
-    }
-
-   // setCurrentState(scene->lastTouchedState);
 }
 
 void RwaStateList::setCurrentState(RwaState *state)
@@ -82,24 +78,15 @@ void RwaStateList::setCurrentState(RwaState *state)
     if(!state)
          return;
 
-    if(QObject::sender() != this->backend)
+    QList<QListWidgetItem *> items = findItems(QString::fromStdString(state->objectName()), Qt::MatchExactly);
+    if(!items.empty())
     {
-        qDebug();
-        emit sendCurrentState(state);
-    }
-
-    else
-    {
-        QList<QListWidgetItem *> items = findItems(QString::fromStdString(state->objectName()), Qt::MatchExactly);
-        if(!items.empty())
-        {
-            setCurrentItem(items.at(0));
-            int row = QListWidget::row(currentItem());
-            setCurrentRow(row);
-            lastSelectedState = currentState;
-            currentState = state;
-            emit sendSelectedStates(getSelectedStates());
-        }
+        setCurrentItem(items.at(0));
+        int row = QListWidget::row(currentItem());
+        setCurrentRow(row);
+        lastSelectedState = currentState;
+        currentState = state;
+        emit sendSelectedStates(getSelectedStates());
     }
 }
 
@@ -111,8 +98,7 @@ void RwaStateList::setCurrentStateFromCurrentListItem()
         if(currentItem())
         {
             state = currentScene->getState(currentItem()->text().toStdString());
-            qDebug();
-            setCurrentState(state);
+            emit sendCurrentState(state);
         }
     }
 }
@@ -121,17 +107,14 @@ void RwaStateList::mousePressEvent(QMouseEvent *event)
 {
     QListWidget::mousePressEvent(event);
     if(currentScene)
-    {
-        qDebug();
         setCurrentStateFromCurrentListItem();
-    }
 }
 
 void RwaStateList::mouseReleaseEvent(QMouseEvent *event)
 {
     QListWidget::mouseReleaseEvent(event);
     if(currentScene)
-         emit sendSelectedStates( getSelectedStates() );
+         emit sendSelectedStates(getSelectedStates());
 }
 
 void RwaStateList::update()
@@ -141,9 +124,7 @@ void RwaStateList::update()
     if(currentScene != nullptr)
     {
         foreach (state, currentScene->getStates())
-        {
             addItem2List(QString::fromStdString(state->objectName()));
-        }
     }
 }
 
@@ -158,7 +139,6 @@ void RwaStateList::keyPressEvent(QKeyEvent *event)
                 RwaState *toDelete = currentState;
                 takeItem(getSelectedIndex());               
                 emit deleteState(QString::fromStdString(toDelete->objectName()));
-                //setCurrentState(currentScene->states.front());
             }
             else
                 qDebug() << "Fallback/Background States can not be deleted.";

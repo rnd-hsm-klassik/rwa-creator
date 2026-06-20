@@ -85,7 +85,6 @@ void RwaState::copyAttributes(RwaState *dest)
     dest->enterOnlyAfterAssetsFinish = this->getEnterOnlyAfterAssetsFinish();
     dest->enterOnlyOnce =  this->getEnterOnlyOnce();
     dest->isExclusive = this->isExclusive;
-    //dest->enterOffset = this->enterOffset;
     dest->exitOffset = this->exitOffset;
     dest->positionLocked = this->positionLocked;
 }
@@ -348,7 +347,6 @@ int32_t RwaState::getDefaultPlaybackType() const
 
 void RwaState::setDefaultPlaybackType(const int32_t &value)
 {
-    qDebug() << "Set Default Playback Type";
     defaultPlaybackType = value;
 }
 

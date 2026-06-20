@@ -18,7 +18,8 @@ CONFIG += c++11
 #CONFIG(release):DEFINES += QT_NO_DEBUG_OUTPUT
 
 QMAKE_RPATHDIR += @executable_path/../Frameworks
-QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.7
+# Set minimum macOS version for Intel Macs running Big Sur/Monterey
+QMAKE_MACOSX_DEPLOYMENT_TARGET = 11.0
 
 INCLUDEPATH += /usr/local/include
 INCLUDEPATH += $$PWD/vas_library/source
@@ -31,6 +32,7 @@ INCLUDEPATH += $$PWD/ofq/libofqf
 INCLUDEPATH += $$PWD/libogg/include/
 INCLUDEPATH += $$PWD/vorbis/include/
 INCLUDEPATH += $$PWD/vorbis/lib/
+INCLUDEPATH += $$PWD/cpp-httplib
 
 macx
 {
@@ -52,6 +54,7 @@ HEADERS += \
     rwaasset1.h \
     rwaheadtrackerconnect.h \
     rwahistory.h \
+    rwainputdialog.h \
     rwalocation1.h \
     rwapdextra~.h \
     rwaruntime.h \
@@ -95,6 +98,11 @@ HEADERS += \
     bluetooth/device.h \
     bluetooth/deviceinfo.h \
     bluetooth/serviceinfo.h \
+    bluetooth1/bluetoothbaseclass.h \
+    bluetooth1/connectionhandler.h \
+    bluetooth1/devicefinder.h \
+    bluetooth1/devicehandler.h \
+    bluetooth1/deviceinfo1.h \
     rwastateview.h \
     clipper/clipper.hpp \
     vas_library/examples/PureData/m_pd.h \
@@ -166,6 +174,7 @@ SOURCES += main.cpp \
     rwaasset1.cpp \
     rwaheadtrackerconnect.cpp \
     rwahistory.cpp \
+    rwainputdialog.cpp \
     rwalocation1.cpp \
     rwaruntime.cpp \
     rwasearchdialog.cpp \
@@ -206,6 +215,11 @@ SOURCES += main.cpp \
     bluetooth/device.cpp \
     bluetooth/deviceinfo.cpp \
     bluetooth/serviceinfo.cpp \
+    bluetooth1/bluetoothbaseclass.cpp \
+    bluetooth1/connectionhandler.cpp \
+    bluetooth1/devicefinder.cpp \
+    bluetooth1/devicehandler.cpp \
+    bluetooth1/deviceinfo1.cpp \
     rwastateview.cpp \
     clipper/clipper.cpp \
     vas_library/examples/PureData/rwa_binauralsimple~.c \

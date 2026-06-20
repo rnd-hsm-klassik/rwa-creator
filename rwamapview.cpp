@@ -18,6 +18,8 @@ RwaMapView::RwaMapView(QWidget* parent, RwaScene *scene, QString name)
     assetsVisible = false;
     stateRadiusVisible = false;
     assetStartPointsVisible = false;
+    assetMovingPointVisible = true;
+    assetReflectionsVisible = false;
     sceneRadiusVisible = true;
     statesVisible = true;
     scenesVisible = true;
@@ -56,14 +58,17 @@ RwaMapView::RwaMapView(QWidget* parent, RwaScene *scene, QString name)
     connect(this, SIGNAL(sendStateCoordinate(QPointF)),
               backend, SLOT(receiveStatePosition(QPointF)));
 
-    connect(this, SIGNAL(sendStartStopSimulator(bool)),
-              backend, SLOT(startStopSimulator(bool)));
+//    connect(this, SIGNAL(sendStartStopSimulator(bool)),
+//              backend, SLOT(startStopSimulator(bool)));
 
     connect(this, SIGNAL(sendCurrentState(RwaState*)),
               backend, SLOT(receiveLastTouchedState(RwaState*)));
 
     connect(this, SIGNAL(sendCurrentScene(RwaScene*)),
               backend, SLOT(receiveLastTouchedScene(RwaScene*)));
+
+    connect(this, SIGNAL(sendCurrentSceneWithoutRepositioning(RwaScene *)),
+              backend, SLOT(receiveCurrentSceneWithouRepositioning(RwaScene *)));
 
     connect(this, SIGNAL(sendMoveCurrentState1(double, double)),
               backend, SLOT(receiveMoveCurrentState1(double, double)));
@@ -74,13 +79,13 @@ RwaMapView::RwaMapView(QWidget* parent, RwaScene *scene, QString name)
     connect(this, SIGNAL(sendSelectedStates(QStringList)),
               backend, SLOT(receiveSelectedStates(QStringList)));
 
-    connect(backend, SIGNAL(sendMoveCurrentAsset1(double, double)),
+    connect(backend, SIGNAL(sendMovePixmapsOfCurrentAsset1(double, double)),
               this, SLOT(movePixmapsOfCurrentAsset(double,double)));
 
     connect(backend, SIGNAL(updateScene(RwaScene *)),
               this, SLOT(setCurrentScene(RwaScene *)));
 
-    connect(backend, SIGNAL(sendMoveCurrentState1(double, double)),
+    connect(backend, SIGNAL(sendMovePixmapsOfCurrentState1(double, double)),
               this, SLOT(movePixmapsOfCurrentState(double,double)));
 
     connect(backend, SIGNAL(sendMoveCurrentAssetChannel(double, double, int)),
@@ -113,6 +118,9 @@ RwaMapView::RwaMapView(QWidget* parent, RwaScene *scene, QString name)
     connect(backend, SIGNAL(sendHeroPositionEdited()),
               this, SLOT(receiveHeroPositionEdited()));
 
+    connect(backend, SIGNAL(sendCurrentSceneWithoutRepositioning(RwaScene *)),
+              this, SLOT(setCurrentSceneWithoutRepositioning(RwaScene *)));
+
     layout->addWidget(setupToolbar(toolbarFlags));
     layout->addWidget(mc);
     addZoomButtons();
@@ -126,6 +134,11 @@ RwaMapView::RwaMapView(QWidget* parent, RwaScene *scene, QString name)
         toolbar, SLOT(receiveMapCoordinates(double,double)));
 
     readSettings();
+}
+
+RwaMapView::~RwaMapView()
+{
+    writeSettings();
 }
 
 void RwaMapView::readSettings()
@@ -196,7 +209,7 @@ void RwaMapView::moveCurrentScene(const QPointF myPoint)
     double dx, dy;
     std::vector<double> lastCoordinate(2, 0.0);
     std::vector<double> tmp(2, 0.0);
-    QmapPoint *geo = (QmapPoint *)currentScenePoint;
+    QmapPoint *geo = static_cast<QmapPoint *>(currentScenePoint);
 
     if(geo)
     {
@@ -232,7 +245,7 @@ void RwaMapView::moveCurrentState1(const QPointF myPoint)
     double dx, dy;
     std::vector<double> lastCoordinate(2, 0.0);
     std::vector<double> tmp(2, 0.0);
-    QmapPoint *geo = (QmapPoint *)currentStatePoint;
+    QmapPoint *geo = static_cast<QmapPoint *>(currentStatePoint);
 
     if(geo)
     {
@@ -264,7 +277,7 @@ void RwaMapView::receiveMouseMoveEvent(const QMouseEvent*, const QPointF myPoint
     QmapPoint *geo;
     if(!backend->isSimulationRunning())
     {
-        geo = (QmapPoint *)currentStatePoint;
+        geo = static_cast<QmapPoint *>(currentStatePoint);
         if(geo)
         {
             moveCurrentState1(myPoint);
@@ -273,7 +286,7 @@ void RwaMapView::receiveMouseMoveEvent(const QMouseEvent*, const QPointF myPoint
             return;
         }
 
-        geo = (QmapPoint *)currentScenePoint;
+        geo = static_cast<QmapPoint *>(currentScenePoint);
         if(geo)
         {
             moveCurrentScene(myPoint);
@@ -302,7 +315,7 @@ void RwaMapView::receiveMouseMoveEvent(const QMouseEvent*, const QPointF myPoint
         }
     }
 
-    geo = (QmapPoint *)currentEntityPoint;
+    geo = static_cast<QmapPoint *>(currentEntityPoint);
     if(geo)
     {
         geo->setCoordinate(myPoint);
@@ -321,6 +334,8 @@ void RwaMapView::receiveMouseMoveEvent(const QMouseEvent*, const QPointF myPoint
 
     emit sendMapPosition(mc->currentCoordinate());
     emit sendMapCoordinates(mc->currentCoordinate().x(), mc->currentCoordinate().y());
+    currentScene->currentViewCoordinates[0] = mc->currentCoordinate().x();
+    currentScene->currentViewCoordinates[1] = mc->currentCoordinate().y();
     RwaUtilities::copyLocationCoordinates2Clipboard(mc->currentCoordinate());
 
     if(backend->logCoordinates)
@@ -461,13 +476,14 @@ void RwaMapView::mouseDownArrow(const QMouseEvent *event, const QPointF myPoint)
         {
             setUndoAction("Edit Scene area.");
             sceneRadiusLayer->setVisible(true);
+            emit sendCurrentSceneRadiusEdited();
             return;
         }
 
         if(mouseDoubleClickArea(myPoint, currentState))
         {
             setUndoAction("Edit State area.");
-            sceneRadiusLayer->setVisible(true);
+            stateRadiusLayer->setVisible(true);
             emit sendCurrentStateRadiusEdited();
             return;
         }
@@ -478,7 +494,7 @@ void RwaMapView::mouseDownArrow(const QMouseEvent *event, const QPointF myPoint)
 
         std::string stateName("State "+ std::to_string( RwaBackend::getStateNameCounter(currentScene->getStates())));
         RwaState *newState = currentScene->addState(stateName, tmp);
-        emit sendCurrentScene(currentScene);
+        emit sendCurrentSceneWithoutRepositioning(currentScene);
         emit sendCurrentState(newState);
         mc->setMouseMode(MapControl::None);
         setUndoAction("New State");
@@ -562,6 +578,12 @@ void RwaMapView::receiveMouseReleaseEvent()
             }
         }
 
+        if(editSceneArea)
+        {
+            emit sendCurrentSceneRadiusEdited();
+            sceneRadiusLayer->setVisible(true);
+        }
+
         mc->updateRequestNew();
         if(!(QObject::sender() == this->backend))
         {
@@ -616,11 +638,10 @@ void RwaMapView::receiveUpdateCurrentSceneRadius()
 
 void RwaMapView::setCurrentAsset(RwaAsset1 *asset)
 {
-    if(asset)
-    {
-        currentAsset = asset;
-        updateAssetPixmaps();
-    }
+    if(!asset)
+        return;
+
+    RwaGraphicsView::setCurrentAsset(asset);
 }
 
 void RwaMapView::setCurrentState(qint32 stateNumber)
@@ -642,6 +663,16 @@ void RwaMapView::setCurrentState(RwaState *state)
     RwaGraphicsView::setCurrentState(state);
 }
 
+void RwaMapView::setCurrentSceneWithoutRepositioning(RwaScene *scene)
+{
+    if(!scene)
+        return;
+
+    QDockWidget *window = static_cast<QDockWidget *>(parent());
+    window->setWindowTitle("Map View - "+ QString::fromStdString(scene->objectName()));
+    RwaGraphicsView::setCurrentScene(scene);
+}
+
 void RwaMapView::setCurrentScene(RwaScene *scene)
 {
     if(!scene)
@@ -652,7 +683,7 @@ void RwaMapView::setCurrentScene(RwaScene *scene)
 
     if(!backend->isSimulationRunning())
     {
-        setMapCoordinates(scene->getCoordinates()[0], scene->getCoordinates()[1]);
+        setMapCoordinates(scene->currentViewCoordinates[0], scene->currentViewCoordinates[1]);
         setMap2AreaZoomLevel(scene);
     }
 

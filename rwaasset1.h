@@ -1,19 +1,38 @@
+/*
+ * This file is part of the Rwa Creator.
+ * An open-source cross-platform Middleware for creating interactive Soundwalks
+ *
+ * Copyright (C) 2015 - 2022 Thomas Resch
+ *
+ * License: MIT
+ *
+ * rwaasset.h
+ * by Thomas Resch
+ * Class represents an rwa asset which combines
+ * attributes and values with either a soundfile, a Pure Data patch,
+ * or a so called "rwaitem", which is some kind of collectable
+ *
+ */
+
 #ifndef RWAASSETITEM_H
 #define RWAASSETITEM_H
 
 #include "rwautilities.h"
 #include "rwaarea.h"
-//#include "rwalocation1.h"
 #include <string.h>
 #include <stdint.h>
 
 #define RWA_UNDETERMINED 0
+
+#define RWA_SR_44100 0
+#define RWA_SR_48000 1
 
 #define RWAASSETTYPE_WAV 1
 #define RWAASSETTYPE_AIF 2
 #define RWAASSETTYPE_PD 3
 #define RWAASSETTYPE_ITEM 4
 #define RWAASSETTYPE_ENTITY 5
+#define RWAASSETTYPE_OGG 6
 
 #define RWAPOSITIONTYPE_ASSET 1
 #define RWAPOSITIONTYPE_ASSETCHANNEL 2
@@ -80,6 +99,7 @@ public:
     ~RwaAsset1();
 
     vector<double> channelcoordinates[64]; // limited to 64 channels, maximum for soundfiles
+    vector<double> customchannelcoordinates[64]; // limited to 64 channels, maximum for soundfiles
     vector<double> reflectioncoordinates[64]; //
     int32_t currentReflection;
     float channelDistance[64];
@@ -87,7 +107,7 @@ public:
     float lastChannelBearing[64];
     float channelRotateFreq[64];
     float channelGain[64];
-    bool individuellChannelPosition[64];    
+    bool hasCustomChannelPosition[64];
     bool reflectionCoordinateIsSet[64];
     bool channelRotate[64];
 
@@ -99,11 +119,13 @@ public:
     void calculateChannelPositions();
 
     void setChannelCoordinate(int32_t channelNumber, std::vector<double> coordinate);
+    void setCustomChannelCoordinate(int32_t channelNumber, std::vector<double> coordinate);
     void setReflectionCoordinate(int32_t channelNumber, std::vector<double> coordinate);
     void setIndividuellChannelPosition(int32_t channel, std::vector<double> position);
     void setChannelGain(int32_t channel, float gain);
     void setChannelRotateFrequency(int channel, float frequency);
     void setIndividualChannelRotateFrequency(int32_t channel, float frequency);
+    void resetIndividualChannelPositions();
 
     string getFileName() const;
     void setFileName(const string &value);
@@ -222,8 +244,8 @@ public:
     bool getLockPosition() const;
     void setLockPosition(bool value);
 
-    bool individuellChannelPositionsAllowed() const;
-    void setAllowIndividuellChannelPositions(bool value);
+    bool customChannelPositionsEnabled() const;
+    void enableCustomChannelPositions(bool value);
 
     bool getAlwaysPlayFromBeginning() const;
     void setAlwaysPlayFromBeginning(bool value);
@@ -272,6 +294,12 @@ public:
     int32_t getReflectionCount() const;
     void setReflectionCount(const int32_t &value);
 
+    float getElevation() const;
+    void setElevation(float newElevation);
+
+    float getSmoothDist() const;
+    void setSmoothDist(float newSmoothdist);
+
     bool getHasCoordinates() const;
 private:
     friend class RwaRuntime;
@@ -288,6 +316,7 @@ private:
     float dampingTrim = 2;
     float dampingMin = 0;
     float dampingMax = 1;
+    float smoothdist = 10;
     float playheadPosition = 0;
     float playheadPositionWithoutOffset = 0;
     float followEntityThreshhold = 4;  // at what distance to entiy start following
@@ -327,6 +356,7 @@ private:
     bool isAlive = true;     // can be activated (in principle)
     bool loop = false;        // start again automatically while within state radius
     bool blocked = false;     // blocked, can't be activated; for example: blocked by another client..
+    bool blockedForever = false;
     bool headtrackerRelative2Source = true;
     bool lockPosition = false;
     bool rawSensors2pd = false;
@@ -345,6 +375,9 @@ private:
 
 public:
     bool allowIndividuellChannelPositions = false;
+
+    bool getBlockedForever() const;
+    void setBlockedForever(bool newBlockedForever);
 };
 
 #endif // RWAASSETITEM_H

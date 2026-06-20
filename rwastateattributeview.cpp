@@ -78,10 +78,13 @@ RwaStateAttributeView::RwaStateAttributeView(QWidget *parent, RwaScene *scene) :
     connect(this, SIGNAL(sendCurrentScene(RwaScene*)),
               backend, SLOT(receiveLastTouchedScene(RwaScene*)));
 
+    connect(this, SIGNAL(sendCurrentSceneWithoutRepositioning(RwaScene*)),
+              backend, SLOT(receiveCurrentSceneWithouRepositioning(RwaScene*)));
+
     connect(backend, SIGNAL(sendSelectedStates(QStringList)),
               this, SLOT(receiveSelectedStates(QStringList)));
 
-    this->setMinimumHeight((assetAttrCounter)*18);
+    this->setMinimumHeight(calculate_window_height());
     this->setMinimumWidth(20);
     this->setMaximumWidth(240);
 }
@@ -102,7 +105,7 @@ void RwaStateAttributeView::receiveEditingFinished()
         lastSenderName = senderName;
         setFocus();
 
-        emit sendCurrentScene(currentScene);
+        emit sendCurrentSceneWithoutRepositioning(currentScene);
     }
 }
 
@@ -177,10 +180,6 @@ void RwaStateAttributeView::setCurrentState(RwaState *state)
 
         attrLineEdit->setText(requiredStatesText);
     }
-
-//    attrLineEdit = this->findChild<QLineEdit *>("Enter Offset");
-//    if(attrLineEdit)
-//        attrLineEdit->setText(QString::number(currentState->getEnterOffset()));
 
     attrLineEdit = this->findChild<QLineEdit *>("Exit Offset");
     if(attrLineEdit)
@@ -276,14 +275,11 @@ void RwaStateAttributeView::updateSceneComboBox(QComboBox *attrComboBox)
 {
     RwaScene *scene;
 
-    //disconnect(attrComboBox, SIGNAL(currentIndexChanged(QString)), this, SLOT(receiveComboBoxAttributeValue(QString)));
     attrComboBox->clear();
     attrComboBox->addItem("None");
 
     foreach(scene, backend->getScenes())
         attrComboBox->addItem(QString::fromStdString(scene->objectName()));
-
-   // connect(attrComboBox, SIGNAL(currentIndexChanged(QString)), this, SLOT(receiveComboBoxAttributeValue(QString)));
 }
 
 void RwaStateAttributeView::receiveCheckBoxAttributeValue(int id, bool value)
@@ -321,7 +317,7 @@ void RwaStateAttributeView::receiveLineEditAttributeValue()
         lastSenderName = senderName;
 
         QLineEdit *attrLineEdit = (QLineEdit *)QObject::sender();
-        QStringList requiredStates = attrLineEdit->text().split(",",QString::SkipEmptyParts);
+        QStringList requiredStates = attrLineEdit->text().split(",",Qt::SkipEmptyParts);
 
         currentState->requiredStates.clear();
         QString requiredState;

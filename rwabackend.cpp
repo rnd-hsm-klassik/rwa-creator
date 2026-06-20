@@ -1,6 +1,37 @@
 #include "rwabackend.h"
+#include <QStandardPaths>
+#include <QThread>
 
 RwaBackend *RwaBackend::instance = nullptr;
+
+/**
+ * ****************************** Game Server ******************************
+ *
+ * The Game Server is a static httplib server for downloading games from the client.
+ * It is started manually from the creator application.
+ *
+ */
+
+RwaGamesServer::RwaGamesServer(httplib::Server *svr, int port, std::string mountPoint)
+{
+    this->svr = svr;
+    this->port = port;
+    this->mountPoint = mountPoint;
+}
+
+void RwaGamesServer::process()
+{
+    using namespace httplib;
+    auto ret = svr->set_mount_point("/", mountPoint);
+
+    if (!ret) {
+        qDebug() << "Directory does not exist!";
+    }
+    else
+        qDebug() << "Started static file server!";
+
+    svr->listen("0.0.0.0", port);
+}
 
 RwaBackend *RwaBackend::getInstance()
 {
@@ -10,13 +41,50 @@ RwaBackend *RwaBackend::getInstance()
     return RwaBackend::instance;
 }
 
+void RwaBackend::StartHttpServer1(qint32 port)
+{
+    serverThread = new QThread();
+    serverThread->setObjectName("RWA Listener");
+    RwaGamesServer* worker = new RwaGamesServer(&svr, port, completeClientDownloadPath.toStdString());
+    worker->moveToThread(serverThread);
+    connect( serverThread, &QThread::started, worker, &RwaGamesServer::process);
+    connect( serverThread, &QThread::finished, worker, &QObject::deleteLater);
+    serverThread->start();
+}
+
+qint32 RwaBackend::getSampleRate() const
+{
+    return sampleRate;
+}
+
+void RwaBackend::setSampleRate(qint32 newSampleRate)
+{
+    if(newSampleRate == 44100 || newSampleRate == 48000)
+        sampleRate = newSampleRate;
+    else
+        sampleRate = 48000;
+}
+
+void RwaBackend::StopHttpServer1()
+{
+    qDebug() << "Try Stopping";
+    svr.stop(); // according to documentation this should be thread-safe and the only possibility to stop listening
+    serverThread->quit();
+    serverThread->wait();
+}
+
+/** The Python server was used for debugging purposes, might still be useful for something. */
+
 void RwaBackend::StartHttpServer(qint32 port)
 {
     char buffer[20];
     QString httpServerStart = QString("python3 -m http.server %1 --directory /Users/harveykeitel/RWACreator/Games & echo $!").arg(port);
     FILE* pipe = popen(httpServerStart.toStdString().c_str(), "r");
     if (!pipe)
-       qDebug() << "Could not create http server";
+    {
+       qDebug() << "Could not start http server";
+       return;
+    }
 
     if (fgets(buffer, 128, pipe) != nullptr)
         httpProcessId = getNumberFromQString(QString(buffer));
@@ -30,21 +98,24 @@ RwaBackend::RwaBackend(QWidget *parent) :
     CFURLRef url = (CFURLRef)CFAutorelease((CFURLRef)CFBundleCopyBundleURL(CFBundleGetMainBundle()));
     QString path = QUrl::fromCFURL(url).path();
     httpProcessId = -1;
-    //StartHttpServer(8088);
-
     completeBundlePath = path + "Contents/MacOS/";
     completeProjectPath = QString();
     completeFilePath = QString();
     completeUndoPath = QString();
     completeAssetPath = QString();
     completeTmpPath = QString();
+    completeXCodeClientProjectExportPath = QString("%1%2").arg(QDir::homePath()).arg("/Desktop");
+    completeClientDownloadPath = QString("%1%2").arg(QDir::homePath()).arg("/Library/Application Support/RWACreator/Games");
+    completeClientDownloadPathWithEscape = QString("%1%2").arg(QDir::homePath()).arg("\"/Library/Application Support/RWACreator/Games\"");
+    applicationSupportPath = QString("%1%2").arg(QDir::homePath()).arg("/Library/Application Support/RWACreator");
+    applicationSupportPathWithEscape = QString("%1%2").arg(QDir::homePath()).arg("\"/Library/Application Support/RWACreator\"");
     projectName = QString();
     currentMapCoordinates = QPointF(QPointF(8.27,50));
     simulator = new RwaSimulator(this, this);
     headtracker = RwaHeadtrackerConnect::getInstance();
     clipboardStates = new RwaScene(std::string("ClipboardScene"), std::vector<double>(2, 0.0), 0);
-
     assetStringList = QStringList();
+    sampleRate = 48000;
     appendScene();
 }
 
@@ -53,7 +124,6 @@ RwaBackend::~RwaBackend()
    // QString killHttp = QString("kill %1").arg(httpProcessId);
    // system(killHttp.toStdString().c_str());
 }
-
 void RwaBackend::updateLastTouchedSceneStateAndAsset()
 {
     emit updateGame();
@@ -147,13 +217,32 @@ void RwaBackend::receiveLastTouchedState(RwaState *state)
     emit sendLastTouchedState(state);
 }
 
+void RwaBackend::receiveCurrentSceneWithouRepositioning(RwaScene *scene)
+{
+    if(!scene)
+        return;
+
+    lastTouchedScene = scene;
+    emit sendCurrentSceneWithoutRepositioning(scene);
+}
+
+void RwaBackend::receiveCurrentStateWithouRepositioning(RwaState *state)
+{
+    qDebug();
+    if(!state)
+        return;
+
+    lastTouchedState = state;
+    emit sendCurrentStateWithoutRepositioning(state);
+}
+
 void RwaBackend::receiveLastTouchedScene(RwaScene *scene)
 {
     if(!scene)
         return;
 
     lastTouchedScene = scene;
-    currentMapCoordinates = QPointF(scene->getCoordinates()[0], scene->getCoordinates()[1]);
+    //currentMapCoordinates = QPointF(scene->getCoordinates()[0], scene->getCoordinates()[1]);
     emit sendLastTouchedScene(scene);
 }
 
@@ -374,14 +463,11 @@ void RwaBackend::moveScene2CurrentMapLocation()
     std::vector<double> tmp(2, 0.0);
     tmp[0] = currentMapCoordinates.x();
     tmp[1] = currentMapCoordinates.y();
+    lastTouchedScene->currentViewCoordinates = tmp;
 
     if(lastTouchedScene)
         lastTouchedScene->moveScene2NewLocation(tmp);
 
-    qDebug() << "Move Scene";
-
-//    emit sendEntityPosition(tmp);
-//    emit sendHeroPositionEdited();
     emit sendLastTouchedScene(lastTouchedScene);
     emit sendMoveHero2CurrentScene();
 }
@@ -437,7 +523,8 @@ void RwaBackend::receiveMoveHero2CurrentScene()
 
 void RwaBackend::receiveEntityPosition(QPointF position)
 {
-    //emit sendEntityPosition(position);
+    vector<double> p = {position.x(), position.y()};
+    emit sendEntityPosition(p);
 }
 
 void RwaBackend::receiveStatePosition(QPointF position)
@@ -447,12 +534,12 @@ void RwaBackend::receiveStatePosition(QPointF position)
 
 void RwaBackend::receiveMoveCurrentState1(double dx, double dy)
 {
-    emit sendMoveCurrentState1(dx, dy);
+    emit sendMovePixmapsOfCurrentState1(dx, dy);
 }
 
 void RwaBackend::receiveMoveCurrentAsset1(double dx, double dy)
 {
-    emit sendMoveCurrentAsset1(dx, dy);
+    emit sendMovePixmapsOfCurrentAsset1(dx, dy);
 }
 
 void RwaBackend::receiveMoveCurrentAssetChannel(double dx, double dy, int channel)
@@ -485,6 +572,14 @@ void RwaBackend::receiveMoveCurrentScene()
 void RwaBackend::receiveTrashAssets(bool onOff)
 {
     trashAsset = onOff;
+}
+
+void RwaBackend::receiveActivateClientSync(bool onOff)
+{
+    if(onOff)
+        StartHttpServer1(8088);
+    else
+        StopHttpServer1();
 }
 
 void RwaBackend::receiveShowStateRadii(bool onOff)
@@ -528,12 +623,13 @@ void RwaBackend::receiveLogOther(int onOff)
 
 void RwaBackend::startStopSimulator(bool startStop)
 {
+    simulator->runtime->lastP = 0;
     if(startStop)
         simulator->startRwaSimulation();
     else
         simulator->stopRwaSimulation();
 
-    emit updateScene(lastTouchedScene);
+    //emit updateScene(lastTouchedScene);
 }
 
 void RwaBackend::setMainVolume(int volume)
@@ -645,7 +741,6 @@ bool RwaBackend::fileUsedByAnotherAsset(RwaAsset1 *asset2Delete)
     return false;
 }
 
-
 void RwaBackend::adjust2UniqueStateName(RwaScene *targetScene, RwaState *newState)
 {
     while(adjust2UniqueStateNameRecursively(targetScene, newState));
@@ -659,11 +754,12 @@ void RwaBackend::generateUuidsForClipboardState(RwaState *state)
 
 int RwaBackend::getNumberFromQString(const QString &xString)
 {
-    QRegExp xRegExp("(-?\\d+(?:[\\.,]\\d+(?:e\\d+)?)?)");
-    xRegExp.indexIn(xString);
-    QStringList xList = xRegExp.capturedTexts();
-    if (true == xList.empty())
-        return 0;
+//    QRegExp xRegExp("(-?\\d+(?:[\\.,]\\d+(?:e\\d+)?)?)");
+//    xRegExp.indexIn(xString);
+//    QStringList xList = xRegExp.capturedTexts();
+//    if (true == xList.empty())
+//        return 0;
 
-    return xList.begin()->toInt();
+//    return xList.begin()->toInt();
+    return 0;
 }

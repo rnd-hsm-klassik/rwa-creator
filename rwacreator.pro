@@ -2,6 +2,7 @@ TEMPLATE = app
 QT += widgets network multimedia concurrent serialport bluetooth
 DEFINES += "PUREDATA"
 DEFINES += "PD"
+DEFINES += "USINGQT"
 
 extralib.target = extra
 extralib.commands = echo "Precompiling libpd, portaudio, and taglib.."; \

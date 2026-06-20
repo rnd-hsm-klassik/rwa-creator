@@ -168,6 +168,7 @@ HEADERS += \
 SOURCES += main.cpp \
     libogg/src/bitwise.c \
     libogg/src/framing.c \
+    oggread~.c \
     pd-extra/pd/externals/freeverb~/freeverb~.c \
     pd-extra/pd/externals/pdogg/oggread~.c \
     pd-extra/pd/externals/pdogg/oggwrite~.c \

@@ -55,3 +55,5 @@ compile_commands.json
 *creator.user*
 
 rwabuild
+build/release
+build/debug

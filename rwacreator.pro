@@ -251,10 +251,13 @@ LIBS += -lz
 
 installs.files += $$PWD/libpd/libs/libpd.dylib
 installs.files += $$PWD/portaudio/lib/.libs/libportaudio.2.dylib
-installs.path = $$OUT_PWD/rwacreator.app/Contents/MacOS
+installs.path = $$OUT_PWD/rwacreator.app/Contents/Frameworks
 INSTALLS += installs
 
 copydata.commands = $(COPY_DIR) $$PWD/images $$OUT_PWD/rwacreator.app/Contents/MacOS \
+&& test -d $$OUT_PWD/rwacreator.app/Contents/Frameworks || mkdir -p $$OUT_PWD/rwacreator.app/Contents/Frameworks \
+&& $(COPY_FILE) $$PWD/libpd/libs/libpd.dylib $$OUT_PWD/rwacreator.app/Contents/Frameworks \
+&& $(COPY_FILE) $$PWD/portaudio/lib/.libs/libportaudio.2.dylib $$OUT_PWD/rwacreator.app/Contents/Frameworks \
 && $(COPY_FILE) $$PWD/puredata/fabian_dir256.txt $$OUT_PWD/rwacreator.app/Contents/MacOS \
 && $(COPY_FILE) $$PWD/puredata/rwaloopplayermono.pd $$OUT_PWD/rwacreator.app/Contents/MacOS \
 && $(COPY_FILE) $$PWD/puredata/rwaloopplayerstereo.pd $$OUT_PWD/rwacreator.app/Contents/MacOS \
@@ -281,10 +284,6 @@ INSTALLS += target
 macx: LIBS += -L$$PWD/portaudio/lib/.libs/ -lportaudio.2
 macx: LIBS += -L$$PWD/libpd/libs/ -lpd
 
-
-
-
-
-
-
-
+# Fix library install names to use @executable_path/../Frameworks
+macx: QMAKE_POST_LINK += install_name_tool -change /usr/local/lib/libportaudio.2.dylib @executable_path/../Frameworks/libportaudio.2.dylib $$OUT_PWD/rwacreator.app/Contents/MacOS/rwacreator $$escape_expand(\\n\\t)
+macx: QMAKE_POST_LINK += install_name_tool -change libs/libpd.dylib @executable_path/../Frameworks/libpd.dylib $$OUT_PWD/rwacreator.app/Contents/MacOS/rwacreator $$escape_expand(\\n\\t)

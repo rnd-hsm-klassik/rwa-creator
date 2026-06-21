@@ -7,7 +7,8 @@ then
 else
     echo "Compiling taglib..."
     cd taglib
-    mkdir -p build
+    rm -rf build
+    mkdir build
     cd build
     cmake .. \
         -DCMAKE_BUILD_TYPE=Release \
@@ -17,5 +18,4 @@ else
         -DBUILD_TESTING=OFF \
         -DBUILD_EXAMPLES=OFF
     make -j4
-    cd ../..
 fi

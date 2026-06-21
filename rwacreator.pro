@@ -16,10 +16,10 @@ macx {
 }
 
 extralib.target = extra
-extralib.commands = echo "Precompiling libpd and portaudio.."; \
-                            $$PWD/makeportaudioandlibpd.sh
-                            # TagLib build disabled until CMake is available
-                            # $$PWD/maketaglib.sh
+extralib.commands = echo "Precompiling portaudio, libpd and taglib..."; \
+    $$PWD/makeportaudio.sh ; \
+    $$PWD/makelibpd.sh ; \
+    $$PWD/maketaglib.sh
 extralib.depends =
 
 QMAKE_EXTRA_TARGETS += extralib

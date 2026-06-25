@@ -2,7 +2,6 @@
 set -e
 
 VERSION="0.8.1"
-QT_PATH="$HOME/Qt/5.15.2/clang_64"
 
 # Clean previous build
 rm -rf build/release
@@ -11,12 +10,12 @@ cd build/release
 
 # Build release
 echo "Building release..."
-"$QT_PATH/bin/qmake" ../rwacreator.pro CONFIG+=release CONFIG+=sdk_no_version_check
+qmake ../../rwacreator.pro CONFIG+=release CONFIG+=sdk_no_version_check
 make -j4
 
 # Deploy Qt frameworks
 echo "Deploying Qt frameworks..."
-"$QT_PATH/bin/macdeployqt" rwacreator.app
+macdeployqt rwacreator.app
 
 # Ad-hoc sign
 echo "Signing app..."

@@ -26,7 +26,7 @@ Install using `aqtinstall` (Qt Online Installer):
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
-pip install aqtinstall 
+pip install aqtinstall
 # check for version: aqt list-qt mac desktop
 aqt install-qt mac desktop 5.15.2 clang_64 --outputdir ~/Qt
 echo 'export PATH="$HOME/Qt/5.15.2/clang_64/bin:$PATH"' >> ~/.zshrc
@@ -49,7 +49,7 @@ source ~/.zshrc
 
 ### Building
 
-**Clone the repository with submodules:**
+Clone the repository with submodules:
 
 ```bash
 # set up git to use HTTPS instead of SSH for GitHub
@@ -62,16 +62,18 @@ git config --global --add url."https://github.com/".insteadOf "git@github.com:"
 git config --global --get-all url."https://".insteadOf
 
 # clone the repository with submodules
-git clone --recursive https://github.com/your-org/rwacreator.git
-cd rwacreator
+git clone --recursive -b legacy \
+    https://github.com/rnd-hsm-klassik/rwa-creator.git
+cd rwa-creator
 ```
 
-**Create a debug build:**
+### Debug Build
 
 ```bash
 mkdir -p build/debug
 cd $_
 qmake ../../rwacreator.pro CONFIG+=debug CONFIG+=sdk_no_version_check
+# make clean # if necessary
 make -j4
 ```
 
@@ -89,24 +91,23 @@ The first build will:
 open rwacreator.app
 ```
 
-### Build Configuration
-
-**Release Build:**
+### Release Build
 
 ```bash
 mkdir -p build/release
 cd $_
 qmake ../../rwacreator.pro CONFIG+=release CONFIG+=sdk_no_version_check
+# make clean # if necessary
 make -j4
 ```
 
-### Troubleshooting
+## Troubleshooting
 
-**SDK Version Warning:**
+### SDK Version Warning
 
 If you see warnings about platform SDK mismatch, add `CONFIG+=sdk_no_version_check` to the qmake command.
 
-**Portaudio Build Issues:**
+### Portaudio Build Issues
 
 If portaudio fails to build, you may need to remove `-Werror` from its Makefile:
 
@@ -115,16 +116,6 @@ cd portaudio
 ./configure
 # Edit Makefile to remove -Werror
 make
-```
-
-**Clean Build:**
-
-```bash
-cd build/debug
-make clean
-rm -rf rwacreator.app
-qmake ../../rwacreator.pro CONFIG+=debug CONFIG+=sdk_no_version_check
-make -j4
 ```
 
 ### Application Bundle Structure
@@ -148,21 +139,22 @@ rwacreator.app/
 │           └── *.png, *.svg
 ```
 
-### Deployment
+## Deployment
 
-#### Creating a Distributable App Bundle
+### Creating a Distributable App Bundle
 
 After building a release version, use `macdeployqt` to bundle Qt frameworks and prepare for distribution:
 
-1. **Build release version:**
+1. Build release version
 ```bash
 mkdir -p build/release
 cd $_
 qmake ../../rwacreator.pro CONFIG+=release CONFIG+=sdk_no_version_check
+make clean
 make -j4
 ```
 
-2. **Run macdeployqt:**
+2. Run macdeployqt
 ```bash
 macdeployqt rwacreator.app
 ```
@@ -173,7 +165,7 @@ This will:
 - Update library paths to use `@rpath`
 - Fix dependencies automatically
 
-3. **Verify the bundle:**
+3. Verify the bundle
 ```bash
 # Check that Qt frameworks are bundled
 ls -la rwacreator.app/Contents/Frameworks/
@@ -182,7 +174,7 @@ ls -la rwacreator.app/Contents/Frameworks/
 open rwacreator.app
 ```
 
-#### Ad-hoc Code Signing
+### Ad-hoc Code Signing
 
 For local distribution or testing on other Macs without Developer ID:
 
@@ -197,14 +189,13 @@ codesign --verify --verbose rwacreator.app
 spctl --assess --verbose rwacreator.app
 ```
 
-#### Creating a DMG
+### Creating a DMG
 
-**Option 1: Using macdeployqt (Quick)**
+Option 1: Using macdeployqt
 
 ```bash
 macdeployqt rwacreator.app -dmg
 ```
-
 
 ### Complete Release Build Script
 

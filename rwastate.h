@@ -128,5 +128,3 @@ public:
     void setAttribute(uint32_t attribute, bool value);
 };
 #endif
-
-

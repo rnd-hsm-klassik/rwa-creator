@@ -507,7 +507,3 @@ std::string RwaUtilities::getFileName1(std::string fullpath)
 #endif
     return p.filename();
 }
-
-
-
-

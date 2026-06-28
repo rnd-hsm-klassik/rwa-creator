@@ -6,6 +6,7 @@
     "program": "$ZED_WORKTREE_ROOT/build/debug/rwacreator.app/Contents/MacOS/rwacreator",
     "cwd": "$ZED_WORKTREE_ROOT/build/debug",
     "args": [],
-    "env": {}
+    "env": {},
+    "build": "Compile debug build"
   }
 ]

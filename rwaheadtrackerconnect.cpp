@@ -1,4 +1,5 @@
 #include "rwaheadtrackerconnect.h"
+#include "rwabackend.h"
 #include <QTimer>
 
 
@@ -156,7 +157,7 @@ void RwaHeadtrackerConnect::receiveHeadtrackerData(const QString &data)
     //qDebug() << receivedOrientation[0];
 
     if(list.length() >= 2)
-       receivedOrientation[1] = list.at(1).toFloat();
+        receivedOrientation[1] = list.at(1).toFloat();
 
     if(list.length() >= 3)
         detectStep(list.at(2).toFloat());

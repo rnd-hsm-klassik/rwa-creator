@@ -21,7 +21,7 @@ float RwaHeadtrackerConnect::getAzimuth()
 }
 
 RwaHeadtrackerConnect::RwaHeadtrackerConnect(QObject *parent) : QObject(parent)
-{   
+{
 
      // deviceHandler = new DeviceHandler();
       rwaBluetooth = new Device();
@@ -158,6 +158,13 @@ void RwaHeadtrackerConnect::receiveHeadtrackerData(const QString &data)
 
     if(list.length() >= 2)
         receivedOrientation[1] = list.at(1).toFloat();
+
+    if(RwaBackend::getInstance()->logOther && list.length() >= 2) {
+        qInfo() << "BLE heading (azimuth/elevation):"
+                << receivedOrientation[0]
+                << "/" << receivedOrientation[1]
+                << "(" << data << ")";
+    }
 
     if(list.length() >= 3)
         detectStep(list.at(2).toFloat());

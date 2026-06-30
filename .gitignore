@@ -54,5 +54,13 @@ compile_commands.json
 # QtCreator local machine specific files for imported projects
 *creator.user*
 
+rwabuild
+build/Desktop*
+.vscode/
+
+.env
+dist
 build/release
+build/cmake-release
 build/debug
+build/cmake-debug

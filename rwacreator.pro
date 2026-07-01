@@ -11,6 +11,8 @@ QMAKE_BUNDLE = rwacreator
 
 # macOS Info.plist
 macx {
+    ICON = images/rwa-creator.icns
+
     # GitCommitHash has no native qmake plist token, so template it in with
     # QMAKE_SUBSTITUTES (Info.plist.in -> build dir). qmake then resolves the
     # remaining @...@ / ${...} tokens when it installs QMAKE_INFO_PLIST.

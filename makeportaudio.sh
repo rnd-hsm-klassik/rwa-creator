@@ -10,5 +10,5 @@ else
     make clean
     make distclean
     sed -i '' 's/-Werror//g' configure configure.in
-    ./configure && make -j4
+    ./configure && make -j"$(sysctl -n hw.logicalcpu)"
 fi

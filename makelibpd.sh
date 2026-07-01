@@ -8,5 +8,5 @@ else
     echo "Building libpd"
     cd libpd
     make clean
-    make -j4 EXTRA=true
+    make -j"$(sysctl -n hw.logicalcpu)" EXTRA=true
 fi

@@ -11,11 +11,12 @@ else
     mkdir build
     cd build
     cmake .. \
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
         -DCMAKE_OSX_ARCHITECTURES=x86_64 \
         -DBUILD_SHARED_LIBS=OFF \
         -DBUILD_TESTING=OFF \
         -DBUILD_EXAMPLES=OFF
-    make -j4
+    make -j"$(sysctl -n hw.logicalcpu)"
 fi

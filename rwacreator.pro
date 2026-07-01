@@ -6,7 +6,7 @@ DEFINES += "USINGQT"
 
 # Version information
 VERSION = 0.8.2
-QMAKE_TARGET_BUNDLE_PREFIX = com.fhnw.hsm.rnd
+QMAKE_TARGET_BUNDLE_PREFIX = com.fhnw.rwa.creator
 QMAKE_BUNDLE = rwacreator
 
 # macOS Info.plist

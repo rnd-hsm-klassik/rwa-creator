@@ -127,11 +127,6 @@ HEADERS += \
     bluetooth/device.h \
     bluetooth/deviceinfo.h \
     bluetooth/serviceinfo.h \
-    bluetooth1/bluetoothbaseclass.h \
-    bluetooth1/connectionhandler.h \
-    bluetooth1/devicefinder.h \
-    bluetooth1/devicehandler.h \
-    bluetooth1/deviceinfo1.h \
     rwastateview.h \
     clipper/clipper.hpp \
     vas_library/examples/PureData/m_pd.h \
@@ -244,11 +239,6 @@ SOURCES += main.cpp \
     bluetooth/device.cpp \
     bluetooth/deviceinfo.cpp \
     bluetooth/serviceinfo.cpp \
-    bluetooth1/bluetoothbaseclass.cpp \
-    bluetooth1/connectionhandler.cpp \
-    bluetooth1/devicefinder.cpp \
-    bluetooth1/devicehandler.cpp \
-    bluetooth1/deviceinfo1.cpp \
     rwastateview.cpp \
     clipper/clipper.cpp \
     vas_library/examples/PureData/rwa_binauralsimple~.c \

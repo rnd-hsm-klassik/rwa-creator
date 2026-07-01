@@ -43,7 +43,6 @@
 #include <QApplication>
 #include <qdebug.h>
 #include "rwabackend.h"
-#include "bluetooth1/connectionhandler.h"
 
 int main(int argc, char **argv)
 {
@@ -60,6 +59,5 @@ int main(int argc, char **argv)
     RwaCreator mainWin;
     qInstallMessageHandler(mainWin.logMessages);
     mainWin.show();
-    ConnectionHandler connectionHandler;
     return app.exec();
 }

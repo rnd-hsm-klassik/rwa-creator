@@ -55,6 +55,8 @@ compile_commands.json
 *creator.user*
 
 rwabuild
++.qtc_clangd/
++*.idx
 build/Desktop*
 .vscode/
 

@@ -328,7 +328,7 @@ void Device::setUpdate(QString message)
 
 void Device::disconnectFromDevice()
 {
-    if (controller->state() != QLowEnergyController::UnconnectedState)
+    if (controller && controller->state() != QLowEnergyController::UnconnectedState)
         controller->disconnectFromDevice();
     else
         deviceDisconnected();

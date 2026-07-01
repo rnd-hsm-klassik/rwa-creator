@@ -28,8 +28,8 @@ source .venv/bin/activate
 pip install --upgrade pip
 pip install aqtinstall
 # check for version: aqt list-qt mac desktop
-aqt install-qt mac desktop 5.15.2 clang_64 --outputdir ~/Qt
-echo 'export PATH="$HOME/Qt/5.15.2/clang_64/bin:$PATH"' >> ~/.zshrc
+aqt install-qt mac desktop 5.15.2 clang_64 --outputdir /Users/Shared/Qt
+echo 'export PATH="/Users/Shared/Qt/5.15.2/clang_64/bin:$PATH"' >> ~/.zshrc
 source ~/.zshrc
 ```
 
@@ -70,11 +70,11 @@ cd rwa-creator
 ### Debug Build
 
 ```bash
-mkdir -p build/debug
+mkdir -p build/qmake-debug
 cd $_
 qmake ../../rwacreator.pro CONFIG+=debug CONFIG+=sdk_no_version_check
 # make clean # if necessary
-make -j4
+make -j"$(sysctl -n hw.logicalcpu)"
 ```
 
 The first build will:

@@ -64,3 +64,4 @@ build/release
 build/cmake-release
 build/debug
 build/cmake-debug
+build/qmake-debug

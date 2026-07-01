@@ -1,18 +1,33 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-QT_DIR="/Users/Shared/Qt/6.11.1/macos"
-BUILD_DIR="$(dirname "$0")/build/cmake-debug"
+# Path to your Qt5 installation
+QT_PATH="/Users/Shared/Qt/5.15.2/clang_64"
+
+# Out-of-source build directory
+BUILD_DIR="$(dirname "$0")/build/qmake-debug"
+
+# =============================================================================
+# Clean
+# =============================================================================
+
+# Clean previous build
+rm -rf "$BUILD_DIR"
+mkdir -p "$BUILD_DIR"
+
+# =============================================================================
+# qmake configure
+# =============================================================================
 
 echo "==> Configuring..."
-cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Debug \
-  -DCMAKE_PREFIX_PATH="$QT_DIR" \
-  -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+cd "$BUILD_DIR"
+"$QT_PATH/bin/qmake" ../../rwacreator.pro CONFIG+=debug CONFIG+=sdk_no_version_check
 
+# =============================================================================
+# Build
+# =============================================================================
 echo "==> Building..."
-cmake --build "$BUILD_DIR" --config Debug \
-  --parallel "$(sysctl -n hw.logicalcpu)"
+make -j "$(sysctl -n hw.logicalcpu)"
 
 echo "Ready to launch in debugger"
 exit 0

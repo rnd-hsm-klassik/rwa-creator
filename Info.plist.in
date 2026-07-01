@@ -18,17 +18,21 @@
 	<string>RWA Creator</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<key>CFBundleSignature</key>
+	<string>RWAC</string>
 	<key>CFBundleShortVersionString</key>
 	<string>@SHORT_VERSION@</string>
 	<key>CFBundleVersion</key>
 	<string>@FULL_VERSION@</string>
 	<key>LSMinimumSystemVersion</key>
-	<string>@MACOSX_DEPLOYMENT_TARGET@</string>
+	<string>${MACOSX_DEPLOYMENT_TARGET}</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026 FHNW</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>CSResourcesFileMapped</key>
 	<true/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>RWA Creator uses Bluetooth to connect to head tracking devices for spatial audio.</string>

@@ -62,6 +62,7 @@ build/Desktop*
 dist
 build/release
 build/cmake-release
+build/qmake-release
 build/debug
 build/cmake-debug
 build/qmake-debug

@@ -98,7 +98,7 @@ mkdir -p build/release
 cd $_
 qmake ../../rwacreator.pro CONFIG+=release CONFIG+=sdk_no_version_check
 # make clean # if necessary
-make -j4
+make -j"$(sysctl -n hw.logicalcpu)"
 ```
 
 ## Troubleshooting
@@ -146,15 +146,17 @@ rwacreator.app/
 After building a release version, use `macdeployqt` to bundle Qt frameworks and prepare for distribution:
 
 1. Build release version
+
 ```bash
 mkdir -p build/release
 cd $_
 qmake ../../rwacreator.pro CONFIG+=release CONFIG+=sdk_no_version_check
 make clean
-make -j4
+make -j"$(sysctl -n hw.logicalcpu)"
 ```
 
-2. Run macdeployqt
+1. Run macdeployqt
+
 ```bash
 macdeployqt rwacreator.app
 ```
@@ -165,7 +167,8 @@ This will:
 - Update library paths to use `@rpath`
 - Fix dependencies automatically
 
-3. Verify the bundle
+1. Verify the bundle
+
 ```bash
 # Check that Qt frameworks are bundled
 ls -la rwacreator.app/Contents/Frameworks/

@@ -12,8 +12,8 @@ BUILD_DIR="$(dirname "$0")/build/qmake-debug"
 # =============================================================================
 
 # Clean previous build
-rm -rf "$BUILD_DIR"
-mkdir -p "$BUILD_DIR"
+# rm -rf "$BUILD_DIR"
+# mkdir -p "$BUILD_DIR"
 
 # =============================================================================
 # qmake configure

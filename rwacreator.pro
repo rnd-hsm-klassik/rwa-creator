@@ -11,8 +11,15 @@ QMAKE_BUNDLE = rwacreator
 
 # macOS Info.plist
 macx {
-    QMAKE_INFO_PLIST = Info.plist.in
-    QMAKE_TARGET_BUNDLE_PREFIX = com.fhnw.hsm.rnd
+    # GitCommitHash has no native qmake plist token, so template it in with
+    # QMAKE_SUBSTITUTES (Info.plist.in -> build dir). qmake then resolves the
+    # remaining @...@ / ${...} tokens when it installs QMAKE_INFO_PLIST.
+    GIT_COMMIT_HASH = $$system(git -C $$PWD rev-parse --short HEAD)
+    infoplist.input  = Info.plist.in
+    infoplist.output = $$OUT_PWD/Info.plist
+    QMAKE_SUBSTITUTES += infoplist
+
+    QMAKE_INFO_PLIST = $$OUT_PWD/Info.plist
 }
 
 extralib.target = extra

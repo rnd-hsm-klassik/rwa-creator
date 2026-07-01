@@ -24,6 +24,8 @@
 	<string>@SHORT_VERSION@</string>
 	<key>CFBundleVersion</key>
 	<string>@FULL_VERSION@</string>
+	<key>GitCommitHash</key>
+	<string>$${GIT_COMMIT_HASH}</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>${MACOSX_DEPLOYMENT_TARGET}</string>
 	<key>NSHumanReadableCopyright</key>

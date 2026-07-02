@@ -5,7 +5,7 @@ DEFINES += "PD"
 DEFINES += "USINGQT"
 
 # Version information
-VERSION = 0.8.2
+VERSION = 0.8.5
 
 # the string ${QMAKE_TARGET_BUNDLE_PREFIX}.${QMAKE_BUNDLE}.plist should not overlap with the
 # qt generated settings file-name (com.fhnw.rwacreator.plist, see main.cpp)

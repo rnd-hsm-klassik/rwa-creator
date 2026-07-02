@@ -19,8 +19,12 @@ fi
 # Configuration — check .env_example and create .env
 # =============================================================================
 
-# HOW CAN THIS BE READ FROM rwacreator.pro?
-VERSION="0.8.1"
+# Read from qmake config
+VERSION="$(sed -n 's/^VERSION[[:space:]]*=[[:space:]]*//p' rwacreator.pro | head -n1)"
+if [ -z "$VERSION" ]; then
+  echo "Could not read VERSION from rwacreator.pro" >&2
+  exit 1
+fi
 
 # Path to your Qt5 installation
 QT_PATH="/Users/Shared/Qt/5.15.2/clang_64"

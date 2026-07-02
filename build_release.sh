@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
-# THIS IS STILL MISSING NOTARISATION!
 set -euo pipefail
+
+# Parse arguments
+CLEAN=false
+for arg in "$@"; do
+  case "$arg" in
+    --clean) CLEAN=true ;;
+    *)
+      echo "Unknown argument: $arg" >&2
+      exit 1
+      ;;
+  esac
+done
 
 # read from .env
 # if no .env, variables from CI pipeline are expected
@@ -19,11 +30,13 @@ fi
 # Configuration — check .env_example and create .env
 # =============================================================================
 
-# Read from qmake config
+# Read version from qmake config
 VERSION="$(sed -n 's/^VERSION[[:space:]]*=[[:space:]]*//p' rwacreator.pro | head -n1)"
 if [ -z "$VERSION" ]; then
   echo "Could not read VERSION from rwacreator.pro" >&2
   exit 1
+else
+    echo "==> Version $VERSION"
 fi
 
 # Path to your Qt5 installation
@@ -37,21 +50,23 @@ NOTARY_PROFILE="${PROFILE}"
 BUILD_DIR="$(dirname "$0")/build/qmake-release"
 
 # App bundle produced by qmake
-APP_BUNDLE="rwacreator.app"
+APP_NAME="RWA Creator"
+APP_BUNDLE="$BUILD_DIR/$APP_NAME.app"
 
 # Where to put the final DMG / zip
 DIST_DIR="$(dirname "$0")/dist"
-APP_NAME="RWACreator"
 ARCHIVE="$DIST_DIR/$APP_NAME.zip"
 DMG_TEMP="$DIST_DIR/dmg_temp"
-DMG="$DIST_DIR/$APP_NAME.dmg"
+DMG="$DIST_DIR/$APP_NAME-$VERSION.dmg"
 
 # =============================================================================
-# Clean
+# Clean (optional, enable with --clean)
 # =============================================================================
 
-# Clean previous build
-rm -rf "$BUILD_DIR"
+if [ "$CLEAN" = true ]; then
+  echo "==> Cleaning previous build..."
+  rm -rf "$BUILD_DIR"
+fi
 mkdir -p "$BUILD_DIR"
 
 # =============================================================================
@@ -59,14 +74,14 @@ mkdir -p "$BUILD_DIR"
 # =============================================================================
 
 echo "==> Configuring..."
-cd "$BUILD_DIR"
-"$QT_PATH/bin/qmake" ../../rwacreator.pro CONFIG+=release CONFIG+=sdk_no_version_check
+"$QT_PATH/bin/qmake" -o "$BUILD_DIR/Makefile" rwacreator.pro \
+    CONFIG+=release CONFIG+=sdk_no_version_check
 
 # =============================================================================
 # Build
 # =============================================================================
 echo "==> Building..."
-make -j "$(sysctl -n hw.logicalcpu)"
+make -C "$BUILD_DIR" -j "$(sysctl -n hw.logicalcpu)"
 
 # =============================================================================
 # Deploy Qt frameworks
@@ -135,7 +150,7 @@ xcrun stapler staple "$APP_BUNDLE"
 xcrun stapler validate "$APP_BUNDLE"
 
 # =============================================================================
-# Create DMG from bundle
+# Create DMG from the stapled bundle
 # =============================================================================
 
 mkdir -p "$DMG_TEMP"
@@ -152,6 +167,6 @@ hdiutil create \
   -fs HFS+ \
   "rwacreator-$VERSION.dmg"
 
-rm -rf dmg-temp
+rm -rf "$DMG_TEMP"
 echo ""
-echo "Done! DMG created: rwacreator-$VERSION.dmg"
+echo "Done. Distributable: $DMG"

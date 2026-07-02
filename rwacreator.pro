@@ -12,6 +12,11 @@ VERSION = 0.8.6
 QMAKE_TARGET_BUNDLE_PREFIX = com.fhnw.rwa.creator
 QMAKE_BUNDLE = rwacreator
 
+# Display name of the final .app bundle (kept separate from QMAKE_BUNDLE/TARGET,
+# which stay as the internal "rwacreator" name to avoid threading a space
+# through every build path and linked binary name).
+APP_BUNDLE_NAME = "RWA Creator"
+
 # macOS Info.plist
 macx {
     ICON = images/rwa-creator.icns
@@ -322,6 +327,37 @@ export(first.depends)
 export(copydata.commands)
 
 QMAKE_EXTRA_TARGETS += first copydata
+
+# Deploy Qt frameworks (release only) and rename the bundle to its display
+# name (debug and release), after copydata has populated Frameworks/Resources.
+macx {
+    CONFIG(release, debug|release) {
+        deployqt.target = deployqt
+        deployqt.depends = copydata
+        deployqt.commands = $$[QT_INSTALL_BINS]/macdeployqt \"$$OUT_PWD/rwacreator.app\"
+        export(deployqt.target)
+        export(deployqt.depends)
+        export(deployqt.commands)
+
+        QMAKE_EXTRA_TARGETS += deployqt
+
+        renamebundle.depends = deployqt
+    } else {
+        renamebundle.depends = copydata
+    }
+    export(renamebundle.depends)
+
+    renamebundle.target = renamebundle
+    renamebundle.commands = rm -rf \"$$OUT_PWD/$${APP_BUNDLE_NAME}.app\" \
+        && mv \"$$OUT_PWD/rwacreator.app\" \"$$OUT_PWD/$${APP_BUNDLE_NAME}.app\"
+    export(renamebundle.target)
+    export(renamebundle.commands)
+
+    first.depends += renamebundle
+    export(first.depends)
+
+    QMAKE_EXTRA_TARGETS += renamebundle
+}
 
 target.path = $$PWD/build
 INSTALLS += target

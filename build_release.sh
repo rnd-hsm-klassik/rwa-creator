@@ -79,16 +79,11 @@ echo "==> Configuring..."
 
 # =============================================================================
 # Build
+# (also deploys Qt frameworks and produces "$APP_BUNDLE" — see the
+# deployqt target in rwacreator.pro)
 # =============================================================================
 echo "==> Building..."
 make -C "$BUILD_DIR" -j "$(sysctl -n hw.logicalcpu)"
-
-# =============================================================================
-# Deploy Qt frameworks
-# =============================================================================
-
-echo "==> Deploying Qt frameworks..."
-"$QT_PATH/bin/macdeployqt" "$APP_BUNDLE"
 
 ## # =============================================================================
 ## # Ad-hoc sign

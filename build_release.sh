@@ -29,6 +29,10 @@ fi
 # Path to your Qt5 installation
 QT_PATH="/Users/Shared/Qt/5.15.2/clang_64"
 
+# Signing and Notarisation
+SIGN_IDENTITY="${TEAM_ID}"
+NOTARY_PROFILE="${PROFILE}"
+
 # Out-of-source build directory
 BUILD_DIR="$(dirname "$0")/build/qmake-release"
 

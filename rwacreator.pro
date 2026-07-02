@@ -6,12 +6,21 @@ DEFINES += "USINGQT"
 
 # Version information
 VERSION = 0.8.2
+
+# the string ${QMAKE_TARGET_BUNDLE_PREFIX}.${QMAKE_BUNDLE}.plist should not overlap with the
+# qt generated settings file-name (com.fhnw.rwacreator.plist, see main.cpp)
 QMAKE_TARGET_BUNDLE_PREFIX = com.fhnw.rwa.creator
 QMAKE_BUNDLE = rwacreator
 
 # macOS Info.plist
 macx {
     ICON = images/rwa-creator.icns
+
+    # qmake assembles a bundle identifier from ${QMAKE_TARGET_BUNDLE_PREFIX}.${QMAKE_BUNDLE}
+    # since QMAKE_BUNDLE determines the binary name, it shouldn't be changed
+    # but to align the bundle identifier with the upstream version, we should use
+    # the same BUNDLE_IDENTIFIER as that version:
+    BUNDLE_IDENTIFIER = com.fhnw.rwa.creator
 
     # GitCommitHash has no native qmake plist token, so template it in with
     # QMAKE_SUBSTITUTES (Info.plist.in -> build dir). qmake then resolves the

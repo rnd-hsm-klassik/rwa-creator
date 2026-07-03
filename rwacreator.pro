@@ -17,27 +17,30 @@ QMAKE_BUNDLE = rwacreator
 # through every build path and linked binary name).
 APP_BUNDLE_NAME = "RWA Creator"
 
-# macOS Info.plist
-macx {
-    ICON = images/rwa-creator.icns
+# =============================================================================
+# Info.plist
+# =============================================================================
+ICON = images/rwa-creator.icns
 
-    # qmake assembles a bundle identifier from ${QMAKE_TARGET_BUNDLE_PREFIX}.${QMAKE_BUNDLE}
-    # since QMAKE_BUNDLE determines the binary name, it shouldn't be changed
-    # but to align the bundle identifier with the upstream version, we should use
-    # the same BUNDLE_IDENTIFIER as that version:
-    BUNDLE_IDENTIFIER = com.fhnw.rwa.creator
+# qmake assembles a bundle identifier from ${QMAKE_TARGET_BUNDLE_PREFIX}.${QMAKE_BUNDLE}
+# since QMAKE_BUNDLE determines the binary name, it shouldn't be changed
+# but to align the bundle identifier with the upstream version, we should use
+# the same BUNDLE_IDENTIFIER as that version:
+BUNDLE_IDENTIFIER = com.fhnw.rwa.creator
 
-    # GitCommitHash has no native qmake plist token, so template it in with
-    # QMAKE_SUBSTITUTES (Info.plist.in -> build dir). qmake then resolves the
-    # remaining @...@ / ${...} tokens when it installs QMAKE_INFO_PLIST.
-    GIT_COMMIT_HASH = $$system(git -C $$PWD rev-parse --short HEAD)
-    infoplist.input  = Info.plist.in
-    infoplist.output = $$OUT_PWD/Info.plist
-    QMAKE_SUBSTITUTES += infoplist
+# GitCommitHash has no native qmake plist token, so template it in with
+# QMAKE_SUBSTITUTES (Info.plist.in -> build dir). qmake then resolves the
+# remaining @...@ / ${...} tokens when it installs QMAKE_INFO_PLIST.
+GIT_COMMIT_HASH = $$system(git -C $$PWD rev-parse --short HEAD)
+infoplist.input  = Info.plist.in
+infoplist.output = $$OUT_PWD/Info.plist
+QMAKE_SUBSTITUTES += infoplist
 
-    QMAKE_INFO_PLIST = $$OUT_PWD/Info.plist
-}
+QMAKE_INFO_PLIST = $$OUT_PWD/Info.plist
 
+# =============================================================================
+# External libraries
+# =============================================================================
 extralib.target = extra
 extralib.commands = echo "Precompiling portaudio, libpd and taglib..."; \
     $$PWD/makeportaudio.sh ; \
@@ -48,13 +51,16 @@ extralib.depends =
 QMAKE_EXTRA_TARGETS += extralib
 PRE_TARGETDEPS = extra
 
+# =============================================================================
+# Compiler
+# =============================================================================
 QMAKE_CC=clang
 QMAKE_CXX=clang++
-
 CONFIG += c++17
 #CONFIG(release):DEFINES += QT_NO_DEBUG_OUTPUT
 
 QMAKE_RPATHDIR += @executable_path/../Frameworks
+
 # Set minimum macOS version for Intel Macs running Big Sur/Monterey
 QMAKE_MACOSX_DEPLOYMENT_TARGET = 11.0
 
@@ -77,15 +83,12 @@ INCLUDEPATH += $$PWD/taglib/taglib/ogg
 INCLUDEPATH += $$PWD/taglib/3rdparty
 INCLUDEPATH += $$PWD/taglib/build
 
-macx
-{
-    LIBS += -framework AudioToolbox \
-            -framework AudioUnit \
-            -framework CoreAudio \
-            -framework CoreServices \
-            -framework Accelerate \
-            -framework Carbon \
-}
+LIBS += -framework AudioToolbox \
+        -framework AudioUnit \
+        -framework CoreAudio \
+        -framework CoreServices \
+        -framework Accelerate \
+        -framework Carbon
 
 include($$PWD/qmapcontrol/QMapControl/QMapControl.pri)
 
@@ -201,8 +204,6 @@ HEADERS += \
     vorbis/lib/smallft.h \
     vorbis/lib/window.h
 
-
-
 SOURCES += main.cpp \
     libogg/src/bitwise.c \
     libogg/src/framing.c \
@@ -290,7 +291,6 @@ SOURCES += main.cpp \
     vorbis/lib/vorbisfile.c \
     vorbis/lib/window.c
 
-
 LIBS += -ltermcap
 LIBS += -lcurses
 LIBS += -lncurses
@@ -332,41 +332,39 @@ QMAKE_EXTRA_TARGETS += first copydata
 
 # Deploy Qt frameworks (release only) and rename the bundle to its display
 # name (debug and release), after copydata has populated Frameworks/Resources.
-macx {
-    CONFIG(release, debug|release) {
-        deployqt.target = deployqt
-        deployqt.depends = copydata
-        deployqt.commands = $$[QT_INSTALL_BINS]/macdeployqt \"$$OUT_PWD/rwacreator.app\"
-        export(deployqt.target)
-        export(deployqt.depends)
-        export(deployqt.commands)
+CONFIG(release, debug|release) {
+    deployqt.target = deployqt
+    deployqt.depends = copydata
+    deployqt.commands = $$[QT_INSTALL_BINS]/macdeployqt \"$$OUT_PWD/rwacreator.app\"
+    export(deployqt.target)
+    export(deployqt.depends)
+    export(deployqt.commands)
 
-        QMAKE_EXTRA_TARGETS += deployqt
+    QMAKE_EXTRA_TARGETS += deployqt
 
-        renamebundle.depends = deployqt
-    } else {
-        renamebundle.depends = copydata
-    }
-    export(renamebundle.depends)
-
-    renamebundle.target = renamebundle
-    renamebundle.commands = rm -rf \"$$OUT_PWD/$${APP_BUNDLE_NAME}.app\" \
-        && mv \"$$OUT_PWD/rwacreator.app\" \"$$OUT_PWD/$${APP_BUNDLE_NAME}.app\"
-    export(renamebundle.target)
-    export(renamebundle.commands)
-
-    first.depends += renamebundle
-    export(first.depends)
-
-    QMAKE_EXTRA_TARGETS += renamebundle
+    renamebundle.depends = deployqt
+} else {
+    renamebundle.depends = copydata
 }
+export(renamebundle.depends)
+
+renamebundle.target = renamebundle
+renamebundle.commands = rm -rf \"$$OUT_PWD/$${APP_BUNDLE_NAME}.app\" \
+    && mv \"$$OUT_PWD/rwacreator.app\" \"$$OUT_PWD/$${APP_BUNDLE_NAME}.app\"
+export(renamebundle.target)
+export(renamebundle.commands)
+
+first.depends += renamebundle
+export(first.depends)
+
+QMAKE_EXTRA_TARGETS += renamebundle
 
 target.path = $$PWD/build
 INSTALLS += target
 
-macx: LIBS += -L$$PWD/portaudio/lib/.libs/ -lportaudio.2
-macx: LIBS += -L$$PWD/libpd/libs/ -lpd
+LIBS += -L$$PWD/portaudio/lib/.libs/ -lportaudio.2
+LIBS += -L$$PWD/libpd/libs/ -lpd
 
 # Fix library install names to use @executable_path/../Frameworks
-macx: QMAKE_POST_LINK += install_name_tool -change /usr/local/lib/libportaudio.2.dylib @executable_path/../Frameworks/libportaudio.2.dylib $$OUT_PWD/rwacreator.app/Contents/MacOS/rwacreator $$escape_expand(\\n\\t)
-macx: QMAKE_POST_LINK += install_name_tool -change libs/libpd.dylib @executable_path/../Frameworks/libpd.dylib $$OUT_PWD/rwacreator.app/Contents/MacOS/rwacreator $$escape_expand(\\n\\t)
+QMAKE_POST_LINK += install_name_tool -change /usr/local/lib/libportaudio.2.dylib @executable_path/../Frameworks/libportaudio.2.dylib $$OUT_PWD/rwacreator.app/Contents/MacOS/rwacreator $$escape_expand(\\n\\t)
+QMAKE_POST_LINK += install_name_tool -change libs/libpd.dylib @executable_path/../Frameworks/libpd.dylib $$OUT_PWD/rwacreator.app/Contents/MacOS/rwacreator $$escape_expand(\\n\\t)

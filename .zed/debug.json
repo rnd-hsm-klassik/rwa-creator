@@ -3,7 +3,7 @@
     "label": "Debug rwacreator (launch)",
     "adapter": "CodeLLDB",
     "request": "launch",
-    "program": "$ZED_WORKTREE_ROOT/build/qmake-debug/rwacreator.app/Contents/MacOS/rwacreator",
+    "program": "$ZED_WORKTREE_ROOT/build/qmake-debug/RWA Creator.app/Contents/MacOS/rwacreator",
     "cwd": "$ZED_WORKTREE_ROOT/build/qmake-debug",
     "args": [],
     "env": {},

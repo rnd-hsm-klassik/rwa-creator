@@ -39,31 +39,25 @@ QMAKE_SUBSTITUTES += infoplist
 QMAKE_INFO_PLIST = $$OUT_PWD/Info.plist
 
 # =============================================================================
-# External libraries
-# =============================================================================
-extralib.target = extra
-extralib.commands = echo "Precompiling portaudio, libpd and taglib..."; \
-    $$PWD/makeportaudio.sh ; \
-    $$PWD/makelibpd.sh ; \
-    $$PWD/maketaglib.sh
-extralib.depends =
-
-QMAKE_EXTRA_TARGETS += extralib
-PRE_TARGETDEPS = extra
-
-# =============================================================================
-# Compiler
+# Compiler & language
 # =============================================================================
 QMAKE_CC=clang
 QMAKE_CXX=clang++
 CONFIG += c++17
-#CONFIG(release):DEFINES += QT_NO_DEBUG_OUTPUT
+
+# qDebug(), qInfo(), and qWarning() are debugging tools.
+# They can be compiled away by defining QT_NO_DEBUG_OUTPUT, QT_NO_INFO_OUTPUT,
+# or QT_NO_WARNING_OUTPUT during compilation.
+# CONFIG(release):DEFINES += QT_NO_DEBUG_OUTPUT
 
 QMAKE_RPATHDIR += @executable_path/../Frameworks
 
 # Set minimum macOS version for Intel Macs running Big Sur/Monterey
 QMAKE_MACOSX_DEPLOYMENT_TARGET = 11.0
 
+# =============================================================================
+# Include paths
+# =============================================================================
 INCLUDEPATH += /usr/local/include
 INCLUDEPATH += $$PWD/vas_library/source
 INCLUDEPATH += $$PWD/vas_library/examples/PureData
@@ -83,6 +77,9 @@ INCLUDEPATH += $$PWD/taglib/taglib/ogg
 INCLUDEPATH += $$PWD/taglib/3rdparty
 INCLUDEPATH += $$PWD/taglib/build
 
+# =============================================================================
+# Libraries
+# =============================================================================
 LIBS += -framework AudioToolbox \
         -framework AudioUnit \
         -framework CoreAudio \
@@ -90,6 +87,30 @@ LIBS += -framework AudioToolbox \
         -framework Accelerate \
         -framework Carbon
 
+LIBS += -ltermcap
+LIBS += -lcurses
+LIBS += -lncurses
+LIBS += -lz
+LIBS += -L$$PWD/taglib/build/taglib -ltag
+LIBS += -L$$PWD/portaudio/lib/.libs/ -lportaudio.2
+LIBS += -L$$PWD/libpd/libs/ -lpd
+
+# =============================================================================
+# Precompiled dependencies (portaudio, libpd, taglib)
+# =============================================================================
+extralib.target = extra
+extralib.commands = echo "Precompiling portaudio, libpd and taglib..."; \
+    $$PWD/makeportaudio.sh ; \
+    $$PWD/makelibpd.sh ; \
+    $$PWD/maketaglib.sh
+extralib.depends =
+
+QMAKE_EXTRA_TARGETS += extralib
+PRE_TARGETDEPS = extra
+
+# =============================================================================
+# Sources & headers
+# =============================================================================
 include($$PWD/qmapcontrol/QMapControl/QMapControl.pri)
 
 HEADERS += \
@@ -135,7 +156,6 @@ HEADERS += \
     rwastateattributeview.h \
     rwaassetattributeview.h \
     rwalogview.h \
-    rwasceneview.h \
     rwagameview.h \
     rwascenelist.h \
     rwasceneattributeview.h \
@@ -291,17 +311,16 @@ SOURCES += main.cpp \
     vorbis/lib/vorbisfile.c \
     vorbis/lib/window.c
 
-LIBS += -ltermcap
-LIBS += -lcurses
-LIBS += -lncurses
-LIBS += -lz
-LIBS += -L$$PWD/taglib/build/taglib -ltag
+# =============================================================================
+# Post-link fixups
+# =============================================================================
+# Fix library install names to use @executable_path/../Frameworks
+QMAKE_POST_LINK += install_name_tool -change /usr/local/lib/libportaudio.2.dylib @executable_path/../Frameworks/libportaudio.2.dylib $$OUT_PWD/rwacreator.app/Contents/MacOS/rwacreator $$escape_expand(\\n\\t)
+QMAKE_POST_LINK += install_name_tool -change libs/libpd.dylib @executable_path/../Frameworks/libpd.dylib $$OUT_PWD/rwacreator.app/Contents/MacOS/rwacreator $$escape_expand(\\n\\t)
 
-installs.files += $$PWD/libpd/libs/libpd.dylib
-installs.files += $$PWD/portaudio/lib/.libs/libportaudio.2.dylib
-installs.path = $$OUT_PWD/rwacreator.app/Contents/Frameworks
-INSTALLS += installs
-
+# =============================================================================
+# Bundle assembly (copy resources, deploy Qt frameworks, rename bundle)
+# =============================================================================
 copydata.depends = all
 copydata.commands = test -d $$OUT_PWD/rwacreator.app/Contents/Resources/puredata || mkdir -p $$OUT_PWD/rwacreator.app/Contents/Resources/puredata \
 && test -d $$OUT_PWD/rwacreator.app/Contents/Resources/images || mkdir -p $$OUT_PWD/rwacreator.app/Contents/Resources/images \
@@ -339,32 +358,24 @@ CONFIG(release, debug|release) {
     export(deployqt.target)
     export(deployqt.depends)
     export(deployqt.commands)
-
     QMAKE_EXTRA_TARGETS += deployqt
-
     renamebundle.depends = deployqt
 } else {
     renamebundle.depends = copydata
 }
 export(renamebundle.depends)
-
 renamebundle.target = renamebundle
 renamebundle.commands = rm -rf \"$$OUT_PWD/$${APP_BUNDLE_NAME}.app\" \
     && mv \"$$OUT_PWD/rwacreator.app\" \"$$OUT_PWD/$${APP_BUNDLE_NAME}.app\"
 export(renamebundle.target)
 export(renamebundle.commands)
-
 first.depends += renamebundle
 export(first.depends)
-
 QMAKE_EXTRA_TARGETS += renamebundle
 
-target.path = $$PWD/build
+# =============================================================================
+# INSTALLS ("make install" target — not invoked by build_release.sh /
+# build_debug.sh today; kept as-is pending investigation)
+# =============================================================================
+target.path = $$PWD/build/
 INSTALLS += target
-
-LIBS += -L$$PWD/portaudio/lib/.libs/ -lportaudio.2
-LIBS += -L$$PWD/libpd/libs/ -lpd
-
-# Fix library install names to use @executable_path/../Frameworks
-QMAKE_POST_LINK += install_name_tool -change /usr/local/lib/libportaudio.2.dylib @executable_path/../Frameworks/libportaudio.2.dylib $$OUT_PWD/rwacreator.app/Contents/MacOS/rwacreator $$escape_expand(\\n\\t)
-QMAKE_POST_LINK += install_name_tool -change libs/libpd.dylib @executable_path/../Frameworks/libpd.dylib $$OUT_PWD/rwacreator.app/Contents/MacOS/rwacreator $$escape_expand(\\n\\t)

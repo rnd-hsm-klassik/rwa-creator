@@ -302,6 +302,7 @@ installs.files += $$PWD/portaudio/lib/.libs/libportaudio.2.dylib
 installs.path = $$OUT_PWD/rwacreator.app/Contents/Frameworks
 INSTALLS += installs
 
+copydata.depends = all
 copydata.commands = test -d $$OUT_PWD/rwacreator.app/Contents/Resources/puredata || mkdir -p $$OUT_PWD/rwacreator.app/Contents/Resources/puredata \
 && test -d $$OUT_PWD/rwacreator.app/Contents/Resources/images || mkdir -p $$OUT_PWD/rwacreator.app/Contents/Resources/images \
 && test -d $$OUT_PWD/rwacreator.app/Contents/Frameworks || mkdir -p $$OUT_PWD/rwacreator.app/Contents/Frameworks \
@@ -322,8 +323,9 @@ copydata.commands = test -d $$OUT_PWD/rwacreator.app/Contents/Resources/puredata
 && $(COPY_FILE) $$PWD/puredata/rwaplayerstereobinaural_fabian.pd $$OUT_PWD/rwacreator.app/Contents/Resources/puredata \
 && $(COPY_FILE) $$PWD/puredata/stereoout.pd $$OUT_PWD/rwacreator.app/Contents/Resources/puredata
 
-first.depends = $(first) copydata
+first.depends = copydata
 export(first.depends)
+export(copydata.depends)
 export(copydata.commands)
 
 QMAKE_EXTRA_TARGETS += first copydata

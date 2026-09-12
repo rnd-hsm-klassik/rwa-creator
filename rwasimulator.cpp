@@ -52,6 +52,9 @@ RwaSimulator::RwaSimulator(QObject *parent, RwaBackend *backend) :
     connect (headTracker, SIGNAL(sendStep()),
              this, SLOT(receiveStep()));
 
+    connect (headTracker, SIGNAL(sendPosition(double, double)),
+             this, SLOT(receiveRtkPosition(double, double)));
+
     connect (backend, SIGNAL(newGameLoaded()),
              this, SLOT(receiveNewGameSignal()));
 
@@ -138,6 +141,19 @@ void RwaSimulator::receivePositionMessage(QVariant data)
             emit backend->sendHeroPositionEdited();
         }
     }
+}
+
+// Unlike the OSC /position path this applies whether or not the simulation
+// runs: the toggle is the creator's explicit opt-in, and watching the fix
+// scatter on the map without audio is part of the field workflow.
+void RwaSimulator::receiveRtkPosition(double latitude, double longitude)
+{
+    std::vector<double> pos = {longitude, latitude};
+    RwaEntity *entity;
+    foreach(entity, entities)
+        entity->setCoordinates(pos);
+    if(!entities.isEmpty())
+        emit backend->sendHeroPositionEdited();
 }
 
 void RwaSimulator::receiveRegisterMessage(QVariant data)

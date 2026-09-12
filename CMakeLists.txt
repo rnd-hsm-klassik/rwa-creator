@@ -79,7 +79,11 @@ set(RWACREATOR_HEADERS
     libogg/include/ogg/os_types.h
     lo/lo.h
     rwaasset1.h
+    rwacasterdialog.h
+    rwacastersettings.h
     rwaheadtrackerconnect.h
+    rwaheadtrackerview.h
+    rwantripclient.h
     rwahistory.h
     rwainputdialog.h
     rwalocation1.h
@@ -195,7 +199,11 @@ set(RWACREATOR_SOURCES
     oggread~.c
     pd-extra/pd/externals/freeverb~/freeverb~.c
     rwaasset1.cpp
+    rwacasterdialog.cpp
+    rwacastersettings.cpp
     rwaheadtrackerconnect.cpp
+    rwaheadtrackerview.cpp
+    rwantripclient.cpp
     rwahistory.cpp
     rwainputdialog.cpp
     rwalocation1.cpp

@@ -37,8 +37,14 @@
 //            emitted as headtrackerSampleReceived(azimuth, elevation, accel)
 //   713d0002 (RWAHT): legacy ASCII text, emitted raw via
 //            headtrackerDataReceived()
-//   anything else (e.g. the RTK raw position on 713d0004) is ignored - it
-//            used to be mis-parsed as heading.
+//   713d0004 (rtk-rover): ASCII raw position "lat latHp lon lonHp",
+//            emitted as positionReceived(lat, lon) in degrees
+//   713d0007 (rtk-rover >= 0.48.0): the receiver's own GGA sentence,
+//            emitted raw via ggaReceived() for the NTRIP client
+//   anything else is ignored - it used to be mis-parsed as heading.
+// For rtk-rover >= 0.48.0 the handler is also the RTCM writer: writeRtcm()
+// feeds the caster's byte stream to 713d0006 (write without response) in
+// MTU-sized chunks, drop-oldest beyond a few VRS epochs.
 
 #ifndef DEVICEHANDLER_H
 #define DEVICEHANDLER_H
@@ -47,6 +53,7 @@
 
 #include <QLowEnergyController>
 #include <QLowEnergyService>
+#include <QTimer>
 
 class DeviceInfo;
 
@@ -71,6 +78,17 @@ public:
     AddressType addressType() const;
 
     bool alive() const;
+    QString deviceName() const;
+
+    /** Feed caster bytes to the assembly. Order is the only framing
+     *  (§5.6): FIFO, drop-oldest beyond rtcmQueueCapacity, written in
+     *  chunks of at most MTU - 3 bytes as the link drains. */
+    void writeRtcm(const QByteArray &data);
+    bool rtcmDownlinkAvailable() const { return m_rtcmCharacteristic.isValid(); }
+    qint64 rtcmBytesWritten() const { return m_rtcmWritten; }
+    qint64 rtcmBytesDropped() const { return m_rtcmDropped; }
+
+    static constexpr int rtcmQueueCapacity = 8192;   // a few VRS epochs, like the firmware FIFO
 
 signals:
     void aliveChanged();
@@ -83,6 +101,15 @@ signals:
     // calibration offsets not yet applied.
     void headtrackerSampleReceived(float azimuthDeg, float elevationDeg,
                                    float linAccelZ);
+    // The RTK raw position (713d0004), degrees, up to 10 Hz while the
+    // receiver has a fix.
+    void positionReceived(double latitudeDeg, double longitudeDeg);
+    // One GGA sentence (713d0007, no CRLF) from the receiver, fix quality
+    // >= 1 only, at most 1 Hz.
+    void ggaReceived(const QString &sentence);
+    // True once 713d0006 was found on the connected device (rtk-rover
+    // >= 0.48.0), false when the link goes away.
+    void rtcmDownlinkChanged(bool available);
 
 public slots:
     void disconnectService();
@@ -98,6 +125,9 @@ private:
                                   const QByteArray &value);
     void confirmedDescriptorWrite(const QLowEnergyDescriptor &d,
                                   const QByteArray &value);
+    void serviceError(QLowEnergyService::ServiceError error);
+    void pumpRtcm();
+    void resetCorrectionsLink();
 
     QLowEnergyController *m_control = nullptr;
     QLowEnergyService *m_service = nullptr;
@@ -105,6 +135,13 @@ private:
     // unsubscribe at a time in confirmedDescriptorWrite on disconnect.
     QList<QLowEnergyDescriptor> m_notificationDescs;
     DeviceInfo *m_currentDevice = nullptr;
+    // Corrections downlink: the characteristic, the ordered byte
+    // queue and the pacing timer (one connection interval).
+    QLowEnergyCharacteristic m_rtcmCharacteristic;
+    QByteArray m_rtcmQueue;
+    QTimer *m_rtcmPump = nullptr;
+    qint64 m_rtcmWritten = 0;
+    qint64 m_rtcmDropped = 0;
 
     bool m_foundHeadtrackerService = false;
     QLowEnergyController::RemoteAddressType m_addressType = QLowEnergyController::PublicAddress;

@@ -177,6 +177,9 @@ public slots:
     void receiveStep();
     void receiveUndoGameLoaded();
     void receivePositionMessage(QVariant data);
+    /** RTK position from the headtracker assembly (713d0004), only while
+     *  Headtracker > Hero Follows RTK Position is on. Degrees. */
+    void receiveRtkPosition(double latitude, double longitude);
 
 private:
     qint32 schedulerFrequency;

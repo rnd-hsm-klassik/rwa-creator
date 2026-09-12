@@ -33,6 +33,8 @@
 #include <QProcess>
 #include <qdebug.h>
 #include "rwainputdialog.h"
+#include "rwacasterdialog.h"
+#include "rwaheadtrackerview.h"
 
 Q_DECLARE_METATYPE(QDockWidget::DockWidgetFeatures)
 
@@ -182,7 +184,30 @@ void RwaCreator::loadDefaultViews()
     addLogView();
     addGameView();
     addHistoryView();
+    addHeadtrackerView();
+    rwaDockWidgets.last()->hide();
     allViewsLoaded = true;
+}
+
+void RwaCreator::addHeadtrackerView()
+{
+    foreach(RwaDockWidget *widget, rwaDockWidgets)
+    {
+        if(widget->objectName() == tr("Headtracker View"))
+        {
+            widget->setVisible(true);
+            widget->raise();
+            return;
+        }
+    }
+
+    RwaDockWidget *dw = new RwaDockWidget(this, "Headtracker View");
+    dw->setObjectName(tr("Headtracker View"));
+    dw->setWindowTitle(tr("Headtracker View"));
+    dw->setGeometry(0,0,420,360);
+    dw->setWidget(new RwaHeadtrackerView(this));
+    addDockWidget(Qt::RightDockWidgetArea, dw);
+    rwaDockWidgets.append(dw);
 }
 
 void RwaCreator::addMapView() // qt bug: stylesheet is applied only if widget is docked:(
@@ -671,6 +696,9 @@ void RwaCreator::initViewMenu1(QMenu *fileMenu)
     action = fileMenu->addAction(tr("Log Window"));
     connect(action, SIGNAL(triggered()), this, SLOT(addLogView()));
 
+    action = fileMenu->addAction(tr("Headtracker View"));
+    connect(action, SIGNAL(triggered()), this, SLOT(addHeadtrackerView()));
+
     action = fileMenu->addAction(tr("Clear Log Window"));
     action->setShortcut(QKeySequence(tr("Ctrl+Shift+L", "Clear Log Window")));
     connect(action, SIGNAL(triggered()), this, SLOT(clearLogWindow()));
@@ -834,6 +862,44 @@ void RwaCreator::initHeadtrackerMenu(QMenu *headtrackerMenu)
 
     QAction *btactionDisconnect = headtrackerMenu->addAction(tr("Disconnect from Bluetooth"));
     connect(btactionDisconnect, SIGNAL(triggered()), headtracker, SLOT(disconnectHeadtracker()));
+
+    // Corrections over BLE: the Creator proxies the NTRIP caster for a
+    // connected rtk-rover >= 0.48.0 assembly, and can steer the hero by the
+    // assembly's RTK position. Both toggles are persisted by the headtracker
+    // connection; the menu mirrors its state.
+    headtrackerMenu->addSeparator();
+
+    QAction *casterAction = headtrackerMenu->addAction(tr("NTRIP Caster..."));
+    connect(casterAction, SIGNAL(triggered()), this, SLOT(enterCasterSettings()));
+
+    ntripCorrectionsAction = headtrackerMenu->addAction(tr("NTRIP Corrections"));
+    ntripCorrectionsAction->setCheckable(true);
+    ntripCorrectionsAction->setChecked(headtracker->correctionsEnabled());
+    ntripCorrectionsAction->setToolTip(tr("Hold the caster session for the connected headtracker and forward RTCM corrections to it."));
+    connect(ntripCorrectionsAction, &QAction::toggled, headtracker, &RwaHeadtrackerConnect::setCorrectionsEnabled);
+    connect(headtracker, &RwaHeadtrackerConnect::correctionsEnabledChanged, ntripCorrectionsAction, &QAction::setChecked);
+
+    heroFollowsRtkAction = headtrackerMenu->addAction(tr("Hero Follows RTK Position"));
+    heroFollowsRtkAction->setCheckable(true);
+    heroFollowsRtkAction->setChecked(headtracker->heroFollowsRtkPosition());
+    heroFollowsRtkAction->setToolTip(tr("Move the hero to every position fix of the connected headtracker, simulation running or not."));
+    connect(heroFollowsRtkAction, &QAction::toggled, headtracker, &RwaHeadtrackerConnect::setHeroFollowsRtkPosition);
+    connect(headtracker, &RwaHeadtrackerConnect::heroFollowsRtkPositionChanged, heroFollowsRtkAction, &QAction::setChecked);
+}
+
+/** ******************************************** NTRIP caster pop-up ********************************************* */
+
+void RwaCreator::enterCasterSettings()
+{
+    RwaCasterSettings settings = RwaCasterSettings::load();
+    const RwaCasterSettings before = settings;
+    if(!RwaCasterDialog::edit(this, settings))
+        return;
+    if(settings == before)
+        return;
+    settings.save();
+    qInfo() << "NTRIP caster settings saved:" << (settings.isComplete() ? settings.endpointDescription() : QStringLiteral("incomplete"));
+    headtracker->casterSettingsChanged();
 }
 
 /** *********************************************** Setup menu bar *************************************************** */

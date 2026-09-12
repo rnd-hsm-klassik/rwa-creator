@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Corrections over BLE for rtk-rover >= 0.48.0 assemblies (ADR-001 in repo
+  rtk-rover, PROJECT-PLAN v4 §5.6). Since that firmware the assembly has no
+  WiFi; whoever holds the BLE connection is the NTRIP client. The Creator now
+  proxies the loop like the Player: `RwaNtripClient` (QTcpSocket, a mirror of
+  the Player's `NtripClient.swift`: one request per connection,
+  ICY/HTTP/SOURCETABLE/401 classification, 30 s connect grace then 10 s no-RTCM
+  hangup, 5 s -> 60 s backoff, GGA to the caster every 10 s) feeds the caster's
+  RTCM stream to the new RTCM writer in `DeviceHandler` (`713d0006`, write
+  without response, MTU-3 chunks paced at one connection interval, 8 KB
+  drop-oldest queue); the receiver's own GGA (`713d0007`) goes back up, seeded
+  from the hero's map position until the receiver has a fix.
+
+  - **Single session per account**: the client exists only while the connected
+    assembly offers the RTCM downlink and *Headtracker > NTRIP Corrections* is
+    on; it stops on BLE disconnect. A unit's single-session caster account is
+    therefore never used by the Creator and the Player at the same time unless
+    both hold a BLE connection, which one unit cannot.
+  
+  - *Headtracker > NTRIP Caster...*: host, port, mount point, username, password
+    (`RwaCasterSettings`, QSettings `caster/*`, password masked in the dialog
+    and stored in the plist like the Player's UserDefaults). Saving restarts a
+    running session.
+  
+- RTK position feed: the raw position on `713d0004` ("lat latHp lon lonHp", UBX
+  high-precision integers) is decoded (`DeviceHandler::positionReceived`).
+  *Headtracker > Hero Follows RTK Position* (persisted) moves the hero to every
+  fix, simulation running or not, unlike the OSC `/position` path which only
+  applies while simulating.
+
+- *View > Headtracker View*: a dock view with the live numbers at 1 Hz:
+  Bluetooth link and device, heading frame rate and inter-arrival interval,
+  caster endpoint, session state and reconnects, RTCM bytes from the caster / to
+  the assembly / dropped, GGA source and age, last caster error, RTK position
+  and rate.
+
+### Notes
+
+- Pairing: rtk-rover 0.48.0 (branch `ble-only-transport`). Older assemblies keep
+  heading, position and step; the Headtracker View reports "assembly has no RTCM
+  downlink" for them.
+
 ## [1.6.0] - 2026-09-04
 
 ### Added

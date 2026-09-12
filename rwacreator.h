@@ -120,6 +120,8 @@ private:
     QSignalMapper *mapper = nullptr;
     QMenu *destroyDockWidgetMenu = nullptr;
     QMenu *headtrackerMenu = nullptr;
+    QAction *ntripCorrectionsAction = nullptr;
+    QAction *heroFollowsRtkAction = nullptr;
     QMenu *audioPreferencesMenu = nullptr;
     QActionGroup *selectSampleRateGroup = nullptr;
     QActionGroup *selectAudioOutputDeviceGroup = nullptr;
@@ -432,6 +434,17 @@ private slots:
 
     void addLogView();
 
+/**
+ * @brief Creates or raises the Headtracker View.
+ *
+ * Live numbers of the connected headtracker: Bluetooth link, heading
+ * rate and jitter, the NTRIP corrections loop and the RTK position.
+ * Created hidden at startup so its layout is restorable; the View menu
+ * shows the existing one instead of adding another.
+ */
+
+    void addHeadtrackerView();
+
 /** ************************************** Write, export and open functionality ******************************************** */
 
 /**
@@ -613,6 +626,13 @@ private slots:
  */
 
     void enterHtName();
+
+/**
+ * @brief Throws the NTRIP caster dialogue (Headtracker > NTRIP Caster...).
+ *
+ * Saves the settings and restarts a running caster session with them.
+ */
+    void enterCasterSettings();
 
 /**
  * @brief Throws a dialogue for entering file path preferences. <br>

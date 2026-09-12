@@ -54,6 +54,10 @@ RwaHeadtrackerConnect::RwaHeadtrackerConnect(QObject *parent) : QObject(parent)
             this, &RwaHeadtrackerConnect::receiveGga);
     connect(m_handler, &DeviceHandler::rtcmDownlinkChanged,
             this, &RwaHeadtrackerConnect::receiveRtcmDownlinkChanged);
+    connect(m_handler, &DeviceHandler::gnssFixReceived,
+            this, &RwaHeadtrackerConnect::receiveGnssFix);
+    connect(m_handler, &DeviceHandler::heartbeatReceived,
+            this, &RwaHeadtrackerConnect::receiveHeartbeat);
     // The heading and position counters belong to the BLE link, whatever
     // firmware is on the other end.
     connect(m_handler, &DeviceHandler::aliveChanged, this, [this]() {
@@ -339,6 +343,31 @@ void RwaHeadtrackerConnect::resetLinkStats()
     m_windowCount = 0;
     m_windowSum = m_windowSumSq = m_windowMax = 0;
     m_positionWindowCount = 0;
+    m_hasFix = false;
+    m_hasHeartbeat = false;
+}
+
+/** ******************************* Telemetry (fix quality, health) ******************************* */
+
+void RwaHeadtrackerConnect::receiveGnssFix(const RwaGnssFix &fix)
+{
+    m_hasFix = true;
+    m_fix = fix;
+    m_lastFixAt = QDateTime::currentDateTime();
+    if(RwaBackend::getInstance()->logOther)
+        qInfo() << "GNSS fix: type" << fix.fixType << "carrier" << fix.carrSoln
+                << "hAcc" << fix.hAccMm << "mm vAcc" << fix.vAccMm << "mm sats" << fix.numSv
+                << "corrAge" << (fix.corrAgeMs == 0xFFFFFFFF ? QStringLiteral("never") : QString::number(fix.corrAgeMs) + " ms");
+}
+
+void RwaHeadtrackerConnect::receiveHeartbeat(const RwaHeartbeat &heartbeat)
+{
+    m_hasHeartbeat = true;
+    m_heartbeat = heartbeat;
+    m_lastHeartbeatAt = QDateTime::currentDateTime();
+    if(RwaBackend::getInstance()->logOther)
+        qInfo() << "Assembly heartbeat: firmware" << heartbeat.fwVersion << "battery" << heartbeat.battMv
+                << "mV, rtcm_bytes" << heartbeat.rtcmBytes << "free heap" << heartbeat.freeHeap;
 }
 
 /**
@@ -472,6 +501,13 @@ RwaHeadtrackerStats RwaHeadtrackerConnect::stats()
     s.lastGga = m_lastGga;
     s.lastGgaAt = m_lastGgaAt;
     s.ggaSeeded = m_ggaSeeded && m_lastGga.isEmpty();
+
+    s.hasFix = m_hasFix;
+    s.fix = m_fix;
+    s.lastFixAt = m_lastFixAt;
+    s.hasHeartbeat = m_hasHeartbeat;
+    s.heartbeat = m_heartbeat;
+    s.lastHeartbeatAt = m_lastHeartbeatAt;
 
     s.heroFollowsRtk = m_heroFollowsRtk;
     s.hasPosition = m_hasPosition;

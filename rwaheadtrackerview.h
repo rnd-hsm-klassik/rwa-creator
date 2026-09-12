@@ -40,6 +40,8 @@ private:
     QLabel *headingRate;
     QLabel *headingJitter;
     QLabel *headingValues;
+    QLabel *batteryLabel;
+    QLabel *firmwareLabel;
     QLabel *correctionsState;
     QLabel *casterLabel;
     QLabel *ntripState;
@@ -48,6 +50,8 @@ private:
     QLabel *ntripError;
     QLabel *positionMode;
     QLabel *positionValue;
+    QLabel *fixLabel;
+    QLabel *accuracyLabel;
 };
 
 #endif // RWAHEADTRACKERVIEW_H

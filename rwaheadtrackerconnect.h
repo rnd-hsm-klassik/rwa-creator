@@ -58,6 +58,13 @@ struct RwaHeadtrackerStats
     QString lastGga;
     QDateTime lastGgaAt;
     bool ggaSeeded = false;        // the caster is (still) fed the hero position
+    // Telemetry service (rtk-rover): fix quality and health
+    bool hasFix = false;
+    RwaGnssFix fix;
+    QDateTime lastFixAt;
+    bool hasHeartbeat = false;
+    RwaHeartbeat heartbeat;
+    QDateTime lastHeartbeatAt;
     // Position (713d0004)
     bool heroFollowsRtk = false;
     bool hasPosition = false;
@@ -143,6 +150,14 @@ private:
     double m_windowSum = 0, m_windowSumSq = 0, m_windowMax = 0;
     QElapsedTimer m_windowClock;
 
+    // Telemetry
+    bool m_hasFix = false;
+    RwaGnssFix m_fix;
+    QDateTime m_lastFixAt;
+    bool m_hasHeartbeat = false;
+    RwaHeartbeat m_heartbeat;
+    QDateTime m_lastHeartbeatAt;
+
     // Position
     bool m_hasPosition = false;
     double m_latitude = 0, m_longitude = 0;
@@ -165,6 +180,8 @@ private slots:
                                   float linAccelZ);
     void receivePosition(double latitude, double longitude);
     void receiveGga(const QString &sentence);
+    void receiveGnssFix(const RwaGnssFix &fix);
+    void receiveHeartbeat(const RwaHeartbeat &heartbeat);
     void receiveRtcmDownlinkChanged(bool available);
     void receiveNtripStatus(const RwaNtripClient::Status &status);
     void receiveNtripError(const QString &reason);

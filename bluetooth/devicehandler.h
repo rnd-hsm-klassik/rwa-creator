@@ -57,6 +57,28 @@
 
 class DeviceInfo;
 
+/** gnss_fix (the fields to be shown) */
+struct RwaGnssFix {
+    double latitude = 0, longitude = 0;
+    float heightM = 0;
+    int fixType = 0;       ///< UBX fixType: 0 none, 1 DR, 2 2D, 3 3D, 4 GNSS+DR
+    int carrSoln = 0;      ///< 0 none, 1 RTK float, 2 RTK fixed
+    quint32 hAccMm = 0, vAccMm = 0;
+    int numSv = 0;
+    float pdop = 0;
+    quint32 corrAgeMs = 0xFFFFFFFF;   ///< 0xFFFFFFFF = never
+};
+
+/** heartbeat (the fields to be shown) */
+struct RwaHeartbeat {
+    quint32 uptimeMs = 0;
+    quint32 freeHeap = 0;
+    QString fwVersion;
+    quint32 droppedFrames = 0;
+    quint32 battMv = 0;    ///< 0 = unknown
+    quint32 rtcmBytes = 0; ///< pushed into the receiver since the previous heartbeat
+};
+
 class DeviceHandler : public BluetoothBaseClass
 {
     Q_OBJECT
@@ -110,6 +132,9 @@ signals:
     // True once 713d0006 was found on the connected device (rtk-rover
     // >= 0.48.0), false when the link goes away.
     void rtcmDownlinkChanged(bool available);
+    // Telemetry service events (rtk-rover only).
+    void gnssFixReceived(const RwaGnssFix &fix);
+    void heartbeatReceived(const RwaHeartbeat &heartbeat);
 
 public slots:
     void disconnectService();
@@ -126,14 +151,26 @@ private:
     void confirmedDescriptorWrite(const QLowEnergyDescriptor &d,
                                   const QByteArray &value);
     void serviceError(QLowEnergyService::ServiceError error);
+    void telemetryStateChanged(QLowEnergyService::ServiceState s);
+    void handleTelemetryData(const QLowEnergyCharacteristic &c,
+                             const QByteArray &value);
+    void decodeTelemetryFrame(const QByteArray &payload);
+    void requestStatusDump();
     void pumpRtcm();
     void resetCorrectionsLink();
 
     QLowEnergyController *m_control = nullptr;
     QLowEnergyService *m_service = nullptr;
+    QLowEnergyService *m_telemetry = nullptr;
+    QLowEnergyCharacteristic m_telemetryCtrl;
+    QByteArray m_telemetryBuffer;
+    bool m_foundTelemetryService = false;
     // Every CCCD subscribed on the RWA service; drained one confirmed
     // unsubscribe at a time in confirmedDescriptorWrite on disconnect.
     QList<QLowEnergyDescriptor> m_notificationDescs;
+    // The subset above that belongs to the telemetry service (a descriptor
+    // must be written through its own service object).
+    QList<QLowEnergyDescriptor> m_telemetryDescs;
     DeviceInfo *m_currentDevice = nullptr;
     // Corrections downlink: the characteristic, the ordered byte
     // queue and the pacing timer (one connection interval).

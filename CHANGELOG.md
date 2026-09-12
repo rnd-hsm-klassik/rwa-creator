@@ -44,6 +44,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the assembly / dropped, GGA source and age, last caster error, RTK position
   and rate.
 
+  From the telemetry service (`713d0100`, decoded in `DeviceHandler` with
+  `QCborValue`): fix type, carrier solution, satellites, correction age,
+  horizontal / vertical accuracy (`gnss_fix`), battery voltage with a linear
+  3.3-4.2 V estimate and firmware version (`heartbeat`). A CTRL `status_dump`
+  (0x02) is sent after subscribing so the first heartbeat arrives right away.
+
 ### Notes
 
 - Pairing: rtk-rover 0.48.0 (branch `ble-only-transport`). Older assemblies keep

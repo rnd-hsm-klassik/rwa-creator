@@ -15,6 +15,45 @@ QString bytesText(qint64 bytes)
     return QStringLiteral("%1 MB").arg(bytes / (1024.0 * 1024.0), 0, 'f', 2);
 }
 
+// Single-cell LiPo, ~4200 mV full to ~3300 mV empty:
+// no discharge curve available, so this is a linear estimate.
+QString batteryText(quint32 mv)
+{
+    if (mv == 0)
+        return QStringLiteral("unknown");
+    const int pct = qBound(0, int((double(mv) - 3300.0) / 900.0 * 100.0 + 0.5), 100);
+    return QStringLiteral("%1 V (~%2 %)").arg(mv / 1000.0, 0, 'f', 2).arg(pct);
+}
+
+QString accuracyText(quint32 mm)
+{
+    if (mm < 1000)
+        return QStringLiteral("%1 cm").arg(mm / 10.0, 0, 'f', 1);
+    return QStringLiteral("%1 m").arg(mm / 1000.0, 0, 'f', 2);
+}
+
+QString fixTypeText(int v)
+{
+    switch (v) {
+    case 0: return QStringLiteral("no fix");
+    case 1: return QStringLiteral("dead reckoning");
+    case 2: return QStringLiteral("2D");
+    case 3: return QStringLiteral("3D");
+    case 4: return QStringLiteral("GNSS + DR");
+    default: return QString::number(v);
+    }
+}
+
+QString carrSolnText(int v)
+{
+    switch (v) {
+    case 0: return QStringLiteral("no RTK");
+    case 1: return QStringLiteral("RTK float");
+    case 2: return QStringLiteral("RTK fixed");
+    default: return QString::number(v);
+    }
+}
+
 QString ageText(const QDateTime &at)
 {
     if (!at.isValid())
@@ -52,6 +91,8 @@ RwaHeadtrackerView::RwaHeadtrackerView(QWidget *parent) : QWidget(parent)
     headingRate = addRow(ble, tr("Heading rate"));
     headingJitter = addRow(ble, tr("Interval"));
     headingValues = addRow(ble, tr("Azimuth / elevation"));
+    batteryLabel = addRow(ble, tr("Battery"));
+    firmwareLabel = addRow(ble, tr("Firmware"));
 
     QFormLayout *ntrip = addGroup(tr("Corrections (NTRIP)"));
     correctionsState = addRow(ntrip, tr("Corrections"));
@@ -64,6 +105,8 @@ RwaHeadtrackerView::RwaHeadtrackerView(QWidget *parent) : QWidget(parent)
     QFormLayout *pos = addGroup(tr("RTK position"));
     positionMode = addRow(pos, tr("Hero"));
     positionValue = addRow(pos, tr("Position"));
+    fixLabel = addRow(pos, tr("Fix"));
+    accuracyLabel = addRow(pos, tr("Accuracy"));
 
     layout->addStretch(1);
 
@@ -109,6 +152,18 @@ void RwaHeadtrackerView::refresh()
         setRow(headingValues, QString(), true);
     }
 
+    if (s.bleConnected && s.hasHeartbeat) {
+        QString battery = batteryText(s.heartbeat.battMv);
+        if (s.lastHeartbeatAt.isValid() && s.lastHeartbeatAt.secsTo(QDateTime::currentDateTime()) > 45)
+            battery += tr(" (stale, %1)").arg(ageText(s.lastHeartbeatAt));
+        setRow(batteryLabel, battery, s.heartbeat.battMv == 0);
+        setRow(firmwareLabel, s.heartbeat.fwVersion.isEmpty() ? tr("unknown") : s.heartbeat.fwVersion,
+               s.heartbeat.fwVersion.isEmpty());
+    } else {
+        setRow(batteryLabel, s.bleConnected ? tr("waiting for heartbeat") : QString(), true);
+        setRow(firmwareLabel, QString(), true);
+    }
+
     // Corrections
     setRow(correctionsState, s.correctionsEnabled ? tr("enabled") : tr("disabled (Headtracker > NTRIP Corrections)"),
            !s.correctionsEnabled);
@@ -152,5 +207,22 @@ void RwaHeadtrackerView::refresh()
         setRow(positionValue, text, s.positionHz <= 0);
     } else {
         setRow(positionValue, s.bleConnected ? tr("no fix") : QString(), true);
+    }
+    if (s.bleConnected && s.hasFix) {
+        // gnss_fix arrives at 1 Hz while the receiver delivers solutions;
+        // a gap is the receiver-degraded signature, so say so.
+        const bool stale = s.lastFixAt.isValid() && s.lastFixAt.secsTo(QDateTime::currentDateTime()) > 5;
+        QString fix = QStringLiteral("%1, %2, %3 sats").arg(fixTypeText(s.fix.fixType), carrSolnText(s.fix.carrSoln)).arg(s.fix.numSv);
+        fix += s.fix.corrAgeMs == 0xFFFFFFFF ? tr(", no corrections yet")
+                                             : tr(", corrections %1 ms old").arg(s.fix.corrAgeMs);
+        if (stale)
+            fix += tr(" (stale, %1)").arg(ageText(s.lastFixAt));
+        setRow(fixLabel, fix, stale || s.fix.fixType == 0);
+        setRow(accuracyLabel, s.fix.fixType == 0 ? QString()
+               : tr("horizontal %1, vertical %2").arg(accuracyText(s.fix.hAccMm), accuracyText(s.fix.vAccMm)),
+               stale || s.fix.fixType == 0);
+    } else {
+        setRow(fixLabel, s.bleConnected ? tr("no telemetry (plain headtracker?)") : QString(), true);
+        setRow(accuracyLabel, QString(), true);
     }
 }

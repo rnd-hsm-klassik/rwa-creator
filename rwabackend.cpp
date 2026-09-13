@@ -575,6 +575,48 @@ void RwaBackend::clearScenes()
     lastTouchedScene = nullptr;
     lastTouchedState = nullptr;
     lastTouchedAssetItem = nullptr;
+    clearLandmarks();
+}
+
+/** ******************************* Landmarks ******************************* */
+
+RwaLandmark *RwaBackend::addLandmark(RwaLandmark *landmark)
+{
+    landmarks.append(landmark);
+    emit sendLandmarksChanged();
+    return landmark;
+}
+
+void RwaBackend::removeLandmark(RwaLandmark *landmark)
+{
+    if(landmarks.removeOne(landmark))
+    {
+        delete landmark;
+        emit sendLandmarksChanged();
+    }
+}
+
+void RwaBackend::clearLandmarks()
+{
+    qDeleteAll(landmarks);
+    landmarks.clear();
+    emit sendLandmarksChanged();
+}
+
+QString RwaBackend::nextLandmarkName() const
+{
+    int n = landmarks.count() + 1;
+    for(;;)
+    {
+        const std::string candidate = QStringLiteral("Landmark %1").arg(n).toStdString();
+        bool taken = false;
+        foreach(RwaLandmark *l, landmarks)
+            if(l->objectName() == candidate)
+                taken = true;
+        if(!taken)
+            return QString::fromStdString(candidate);
+        n++;
+    }
 }
 
 void RwaBackend::reset()

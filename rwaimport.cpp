@@ -204,6 +204,21 @@ void RwaImport::readRwa()
                 if(currentState != "")
                     scene->setCurrentState(currentState.toStdString());
             }
+
+            // Landmarks (authoring aid, see RwaExport::writeLandmark). The
+            // headless importer has no backend to hold them and skips them.
+            if(xml.name().toString() == "landmark" && backend)
+            {
+                gps[0] = xml.attributes().value("lon").toDouble();
+                gps[1] = xml.attributes().value("lat").toDouble();
+                RwaLandmark *landmark = new RwaLandmark(xml.attributes().value("name").toString().toStdString(), gps);
+                landmark->description = xml.attributes().value("description").toString().toStdString();
+                landmark->captured = xml.attributes().value("captured").toString().toStdString();
+                landmark->source = xml.attributes().value("source").toString().toStdString();
+                landmark->carrSoln = xml.attributes().value("carrsoln").toInt();
+                landmark->hAccMm = xml.attributes().value("haccmm").toUInt();
+                backend->addLandmark(landmark);
+            }
         }
     }
     if (xml.hasError())

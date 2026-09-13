@@ -43,6 +43,7 @@ private:
     void writeScene(RwaScene *scene);
     void writeState(RwaState *state);
     void writeAssetItem1(RwaAsset1 *item);
+    void writeLandmark(RwaLandmark *landmark);
 
     QXmlStreamWriter xml;
     RwaBackend *backend;

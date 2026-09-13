@@ -124,6 +124,10 @@ namespace qmapcontrol
          */
         int currentZoom() const;
 
+        //! RWA Creator: a sendMouseDownEvent() receiver that handled a right click
+        //! (a context menu) calls this so the press does not also zoom in.
+        void setRightClickConsumed(bool consumed);
+
         //! sets the middle of the map to the given coordinate
         /*!
          * @param  coordinate the coordinate which the view´s middle should be set to
@@ -235,6 +239,7 @@ namespace qmapcontrol
         QRectF selectRect;
 
         bool mousepressed;
+        bool rightClickConsumed = false;
         MouseMode mymousemode;
         bool scaleVisible;
 

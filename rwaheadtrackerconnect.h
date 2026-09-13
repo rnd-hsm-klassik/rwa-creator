@@ -91,6 +91,11 @@ public:
      *  window, so call it from one place at a steady rate. */
     RwaHeadtrackerStats stats();
 
+    /** A position fix arrived within maxAgeMs (for recording landmarks). */
+    bool positionIsLive(int maxAgeMs = 2000) const;
+    bool hasFix() const { return m_hasFix; }
+    RwaGnssFix lastFix() const { return m_fix; }
+
 public slots:
     void startBluetoothScanning();
     void disconnectHeadtracker();

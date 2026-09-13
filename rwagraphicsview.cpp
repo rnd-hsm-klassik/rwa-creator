@@ -1,8 +1,29 @@
 #include "rwagraphicsview.h"
+#include <QPainter>
+#include <algorithm>
 #include <cmath>
 #include "rwastyles.h"
 #include "rwathemedicon.h"
 #include <math.h>
+
+// Pads a rendered flag icon onto a square transparent canvas so that the
+// bottom of the flag pole is at the canvas centre. The tip's place inside
+// images/flag.svg (viewBox 0 -960 960 960) follows from its path: the pole
+// spans x 222.46..266.31 (centre 244.4 -> 0.2546 of the width) and ends at
+// y -442.85 + 288.43 + 15.9 = -138.52 (-> 0.8557 of the height).
+static QPixmap flagMarkerPixmap(const QPixmap &icon)
+{
+    const qreal tipX = 0.2546 * icon.width();
+    const qreal tipY = 0.8557 * icon.height();
+    // big enough to hold the icon with the tip at the centre, and even.
+    const int half = int(std::ceil(std::max({tipX, icon.width() - tipX, tipY, icon.height() - tipY}))) + 1;
+    QPixmap canvas(2 * half, 2 * half);
+    canvas.fill(Qt::transparent);
+    QPainter painter(&canvas);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform);
+    painter.drawPixmap(QPointF(half - tipX, half - tipY), icon);
+    return canvas;
+}
 
 RwaGraphicsView::RwaGraphicsView(QWidget *parent, RwaScene *scene, QString name) :
     RwaView(parent, scene, name)
@@ -77,6 +98,17 @@ RwaGraphicsView::RwaGraphicsView(QWidget *parent, RwaScene *scene, QString name)
     assetReflectionLayer->setActivePixmap(QPixmap(path+"images/audioreflectionactive.svg").scaled(21, 21, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     assetReflectionLayer->setPassivePixmap(QPixmap(path+"images/audioreflectionpassive.svg").scaled(21, 21, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     mc->addLayer(assetReflectionLayer);
+
+    // Landmarks (flags) sit below the hero so the hero stays draggable on top.
+    // The map centres every pixmap on its coordinate, so the flag icon is
+    // padded onto a canvas whose centre is the tip of the flag pole: the tip,
+    // not the icon's middle, marks the recorded position.
+    landmarkLayer = new GeometryLayer("Landmark Layer", mapadapter);
+    landmarkPassivePixmap = flagMarkerPixmap(QPixmap(path+"images/flag.svg").scaled(21, 21, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    landmarkActivePixmap = flagMarkerPixmap(rwaRenderRecoloredSvg(path+"images/flag.svg", selectionColor, QSize(21, 21), 1.0, assetIconBlue));
+    landmarkLayer->setActivePixmap(landmarkActivePixmap);
+    landmarkLayer->setPassivePixmap(landmarkPassivePixmap);
+    mc->addLayer(landmarkLayer);
 
     entityLayer = new GeometryLayer("Client Layer", mapadapter);
     entityLayer->setActivePixmap(QPixmap(path+"images/hero4.png"));
@@ -250,6 +282,60 @@ void RwaGraphicsView::setRadiiVisible(bool onOff)
     this->stateRadiusVisible = onOff;
     stateRadiusLayer->setVisible(onOff);
     redrawStateRadii();
+}
+
+void RwaGraphicsView::setLandmarksVisible(bool onOff)
+{
+    landmarksVisible = onOff;
+    landmarkLayer->setVisible(onOff);
+    redrawLandmarks();
+}
+
+// flag plus name label. Like drawState, a (hidden) line edit is attached too:
+// the point only draws its label when it also owns a line edit.
+void RwaGraphicsView::drawLandmark(RwaLandmark *landmark, bool isActive)
+{
+    if(!landmark)
+        return;
+
+    QmapPoint *point = new QmapPoint(landmark->getCoordinates()[0], landmark->getCoordinates()[1],
+                                     isActive ? landmarkLayer->getActivePixmap() : landmarkLayer->getPassivePixmap(),
+                                     landmark);
+    QLineEdit *nameEdit = new QLineEdit(mc);
+    nameEdit->setFixedWidth(80);
+    nameEdit->setFixedHeight(21);
+    QLabel *nameLabel = new QLabel(mc);
+    nameLabel->setFixedWidth(100);
+    nameLabel->setFixedHeight(21);
+    point->addLineEditWidget(nameEdit);
+    point->addLabelWidget(nameLabel);
+    point->setLineEditVisible(false);
+    point->setLabelVisible(true);
+    // the canvas centre is the pole tip (flagMarkerPixmap): label a little
+    // right of the pole and below the flag.
+    const QPixmap *pixmap = point->pixmap();
+    point->setLabelOffset(QPoint(pixmap->width() / 2 + 4, pixmap->height() / 2 + 3));
+    landmarkLayer->addGeometry(point);
+}
+
+void RwaGraphicsView::redrawLandmarks()
+{
+    currentLandmarkPoint = nullptr;
+    landmarkLayer->clearGeometries();
+
+    if(currentLandmark && !backend->getLandmarks().contains(currentLandmark))
+        currentLandmark = nullptr;   // deleted or replaced by a reload
+
+    if(landmarksVisible)
+    {
+        foreach(RwaLandmark *landmark, backend->getLandmarks())
+            drawLandmark(landmark, landmark == currentLandmark);
+    }
+
+    // clearing a layer removes the label widgets at once but leaves the
+    // pixmaps on screen until the next paint, so ask for one (a delete via
+    // the Delete key or the context menu has no mouse event to trigger it).
+    mc->updateRequestNew();
 }
 
 void RwaGraphicsView::movePixmapsOfCurrentAsset(double dx, double dy)

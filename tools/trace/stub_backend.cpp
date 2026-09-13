@@ -33,3 +33,10 @@ void RwaBackend::receiveLastTouchedScene(RwaScene *scene)
     (void)scene;
     abort();
 }
+
+RwaLandmark *RwaBackend::addLandmark(RwaLandmark *landmark)
+{
+    (void)landmark;
+    abort(); // unreachable: RwaImport skips landmarks without a backend
+    return nullptr;
+}

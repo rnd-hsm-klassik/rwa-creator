@@ -1,4 +1,8 @@
 #include "rwamapview.h"
+#include "rwalandmarkdialog.h"
+#include "rwaheadtrackerconnect.h"
+#include <QMenu>
+#include <QDateTime>
 
 RwaMapView::RwaMapView(QWidget* parent, RwaScene *scene, QString name)
 : RwaGraphicsView(parent, scene, name)
@@ -109,6 +113,15 @@ RwaMapView::RwaMapView(QWidget* parent, RwaScene *scene, QString name)
     connect(backend, SIGNAL(sendCurrentSceneRadiusEdited()),
               this, SLOT(receiveUpdateCurrentSceneRadius()));
 
+    // Landmarks: redrawn whenever the backend's list changes (record, delete,
+    // load, undo). newGameLoaded is also what clears the layers (initNewGame).
+    connect(backend, SIGNAL(sendLandmarksChanged()), this, SLOT(redrawLandmarks()));
+    connect(backend, SIGNAL(newGameLoaded()), this, SLOT(redrawLandmarks()));
+    connect(backend, SIGNAL(undoGameLoaded()), this, SLOT(redrawLandmarks()));
+
+    // Key events (Delete on a selected landmark) come through the map widget.
+    mc->setFocusPolicy(Qt::ClickFocus);
+
     connect(backend, SIGNAL(sendMoveHero2CurrentState()),
               this, SLOT(setEntityCoordinates2CurrentState()));
 
@@ -148,6 +161,8 @@ void RwaMapView::readSettings()
     toolbar->assetsVisibleButton->setChecked(settings.value("mapviewassetsvisible").toBool());
     setRadiiVisible(settings.value("mapviewradiivisible").toBool());
     toolbar->radiiVisibleButton->setChecked(settings.value("mapviewradiivisible").toBool());
+    setLandmarksVisible(settings.value("mapviewlandmarksvisible", true).toBool());
+    toolbar->landmarksVisibleButton->setChecked(landmarksVisible);
 
     // This is not so nice but much less code then putting it in backend and add more slots and signals for very basic functionality
     backend->heroFollowsSceneAndState = settings.value("mapviewherofollows").toBool();
@@ -159,6 +174,7 @@ void RwaMapView::writeSettings()
     QSettings settings;
     settings.setValue("mapviewassetsvisible", assetsVisible);
     settings.setValue("mapviewradiivisible", stateRadiusVisible);
+    settings.setValue("mapviewlandmarksvisible", landmarksVisible);
     settings.setValue("mapviewherofollows", backend->heroFollowsSceneAndState);
 }
 
@@ -275,6 +291,16 @@ void RwaMapView::receiveMouseMoveEvent(const QMouseEvent*, const QPointF myPoint
         return;
 
     QmapPoint *geo;
+    geo = static_cast<QmapPoint *>(currentLandmarkPoint);
+    if(geo)
+    {
+        geo->setCoordinate(myPoint);
+        RwaLandmark *landmark = static_cast<RwaLandmark *>(geo->data);
+        landmark->setCoordinates({myPoint.x(), myPoint.y()});
+        setUndoAction("Move Landmark");
+        return;
+    }
+
     if(!backend->isSimulationRunning())
     {
         geo = static_cast<QmapPoint *>(currentStatePoint);
@@ -417,6 +443,212 @@ bool RwaMapView::mouseDownStates(const QPointF myPoint)
         return false;
 }
 
+/** ************************************* Landmarks ************************************* */
+
+RwaLandmark *RwaMapView::landmarkAt(const QPointF myPoint, QmapPoint **point)
+{
+    QmapPoint tmppoint(myPoint.x(), myPoint.y());
+    for (int i=0; i<landmarkLayer->geometries.count(); i++)
+    {
+        if (landmarkLayer->geometries.at(i)->isVisible() && landmarkLayer->geometries.at(i)->Touches(&tmppoint, mapadapter))
+        {
+            QmapPoint *hit = static_cast<QmapPoint *>(landmarkLayer->geometries.at(i));
+            if(point)
+                *point = hit;
+            return static_cast<RwaLandmark *>(hit->data);
+        }
+    }
+    return nullptr;
+}
+
+bool RwaMapView::mouseDownLandmarks(const QPointF myPoint)
+{
+    currentLandmarkPoint = nullptr;
+    QmapPoint *point = nullptr;
+    RwaLandmark *landmark = landmarkAt(myPoint, &point);
+    if(!landmark)
+        return false;
+
+    currentLandmarkPoint = point;
+    selectLandmark(landmark);
+    mc->setMouseMode(MapControl::None);
+    return true;
+}
+
+void RwaMapView::selectLandmark(RwaLandmark *landmark)
+{
+    currentLandmark = landmark;
+    for (int i=0; i<landmarkLayer->geometries.count(); i++)
+    {
+        QmapPoint *point = static_cast<QmapPoint *>(landmarkLayer->geometries.at(i));
+        point->setPixmap(point->data == landmark ? landmarkLayer->getActivePixmap()
+                                                 : landmarkLayer->getPassivePixmap());
+    }
+    mc->updateRequestNew();
+}
+
+void RwaMapView::keyPressEvent(QKeyEvent *event)
+{
+    if((event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace) && currentLandmark)
+    {
+        deleteLandmark(currentLandmark);
+        event->accept();
+        return;
+    }
+    RwaGraphicsView::keyPressEvent(event);
+}
+
+/**
+ * The flag button: a landmark where the hero stands. With Hero Follows RTK
+ * Position that is the live headtracker fix, otherwise wherever the hero was
+ * dragged (or moved by OSC imput). The capture data come from the headtracker
+ * connection so the dialog can say how trustworthy the position is.
+ */
+void RwaMapView::recordLandmarkAtHero()
+{
+    if(backend->simulator->entities.isEmpty() || backend->completeProjectPath.isEmpty())
+    {
+        qWarning() << "Landmark: no game loaded, nothing to record";
+        return;
+    }
+
+    RwaEntity *hero = backend->simulator->entities.first();
+    RwaLandmark *landmark = new RwaLandmark(backend->nextLandmarkName().toStdString(), hero->getCoordinates());
+    landmark->captured = QDateTime::currentDateTime().toString(Qt::ISODate).toStdString();
+
+    RwaHeadtrackerConnect *headtracker = RwaHeadtrackerConnect::getInstance();
+    if(headtracker->heroFollowsRtkPosition() && headtracker->positionIsLive())
+    {
+        landmark->source = "rtk";
+        if(headtracker->hasFix())
+        {
+            landmark->carrSoln = headtracker->lastFix().carrSoln;
+            landmark->hAccMm = headtracker->lastFix().hAccMm;
+        }
+    }
+    else
+        landmark->source = "hand";
+
+    if(RwaLandmarkDialog::edit(this, landmark, true) != RwaLandmarkDialog::Accepted)
+    {
+        delete landmark;
+        return;
+    }
+
+    if(!landmarksVisible)
+        toolbar->landmarksVisibleButton->click();   // recording something you cannot see helps nobody
+
+    backend->addLandmark(landmark);   // redraws through sendLandmarksChanged
+    selectLandmark(landmark);
+    qInfo() << "Landmark recorded:" << QString::fromStdString(landmark->objectName())
+            << QString::number(landmark->getCoordinates()[1], 'f', 7)
+            << QString::number(landmark->getCoordinates()[0], 'f', 7)
+            << "(" << RwaLandmarkDialog::captureText(landmark) << ")";
+    setUndoAction("New Landmark");
+    writeUndo();
+}
+
+void RwaMapView::editLandmark(RwaLandmark *landmark)
+{
+    switch(RwaLandmarkDialog::edit(this, landmark, false))
+    {
+    case RwaLandmarkDialog::Accepted:
+        redrawLandmarks();
+        setUndoAction("Edit Landmark");
+        writeUndo();
+        break;
+    case RwaLandmarkDialog::Deleted:
+        deleteLandmark(landmark);
+        break;
+    case RwaLandmarkDialog::Cancelled:
+        break;
+    }
+}
+
+void RwaMapView::deleteLandmark(RwaLandmark *landmark)
+{
+    if(!landmark)
+        return;
+    qInfo() << "Landmark deleted:" << QString::fromStdString(landmark->objectName());
+    if(currentLandmark == landmark)
+        currentLandmark = nullptr;
+    currentLandmarkPoint = nullptr;
+    backend->removeLandmark(landmark);   // deletes it and redraws
+    setUndoAction("Delete Landmark");
+    writeUndo();
+}
+
+void RwaMapView::moveHeroToLandmark(RwaLandmark *landmark)
+{
+    if(backend->simulator->entities.isEmpty())
+        return;
+    RwaEntity *hero = backend->simulator->entities.first();
+    hero->setCoordinates(landmark->getCoordinates());
+    emit sendEntityPosition(QPointF(landmark->getCoordinates()[0], landmark->getCoordinates()[1]));
+    redrawEntities();
+}
+
+/**
+ * The selected asset's anchor goes to the landmark; channel and reflection
+ * positions shift by the same delta, the way a drag in the State View moves
+ * them (moveMyChildren). The start position of a moving asset stays, as it does
+ * on a drag.
+ */
+void RwaMapView::moveCurrentAssetToLandmark(RwaLandmark *landmark)
+{
+    RwaAsset1 *asset = backend->getLastTouchedAssetItem();
+    if(!asset)
+        return;
+    if(asset->getLockPosition())
+    {
+        qWarning() << "Landmark: asset" << QString::fromStdString(asset->objectName()) << "has a locked position, not moved";
+        return;
+    }
+    const std::vector<double> from = asset->getCoordinates();
+    const std::vector<double> to = landmark->getCoordinates();
+    const double dx = to[0] - from[0];
+    const double dy = to[1] - from[1];
+    asset->setCoordinates(to);
+    asset->moveMyChildren(dx, dy);
+    backend->receiveMoveCurrentAsset1(dx, dy);   // every view shifts its pixmaps of the current asset
+    qInfo() << "Asset" << QString::fromStdString(asset->objectName()) << "moved to landmark"
+            << QString::fromStdString(landmark->objectName());
+    setUndoAction("Move Asset to Landmark");
+    writeUndo();
+}
+
+void RwaMapView::showLandmarkMenu(RwaLandmark *landmark, const QPoint &globalPos)
+{
+    QMenu menu(this);
+
+    QAction *moveHero = menu.addAction(tr("Move Hero here"));
+    RwaHeadtrackerConnect *headtracker = RwaHeadtrackerConnect::getInstance();
+    if(headtracker->heroFollowsRtkPosition())
+    {
+        moveHero->setEnabled(false);
+        moveHero->setText(tr("Move Hero here (hero follows RTK position)"));
+    }
+
+    RwaAsset1 *asset = backend->getLastTouchedAssetItem();
+    QAction *moveAsset = menu.addAction(asset ? tr("Move \"%1\" here").arg(QString::fromStdString(asset->objectName()))
+                                              : tr("Move Asset here (no asset selected)"));
+    moveAsset->setEnabled(asset != nullptr);
+
+    menu.addSeparator();
+    QAction *edit = menu.addAction(tr("Edit..."));
+    QAction *remove = menu.addAction(tr("Delete"));
+
+    QAction *chosen = menu.exec(globalPos);
+    if(chosen == moveHero)
+        moveHeroToLandmark(landmark);
+    else if(chosen == moveAsset)
+        moveCurrentAssetToLandmark(landmark);
+    else if(chosen == edit)
+        editLandmark(landmark);
+    else if(chosen == remove)
+        deleteLandmark(landmark);
+}
+
 void RwaMapView::receiveSelectRect(QRectF selectRect)
 {
     RwaState *state;
@@ -454,6 +686,13 @@ void RwaMapView::mouseDownArrow(const QMouseEvent *event, const QPointF myPoint)
         if(mouseDownEntities(myPoint)) // entities have priority
            return;
 
+        if(mouseDownLandmarks(myPoint))
+            return;
+
+        // A click anywhere else drops the landmark selection.
+        if(currentLandmark)
+            selectLandmark(nullptr);
+
         if(!backend->isSimulationRunning())
         {
             if(mouseDownStates(myPoint))
@@ -467,6 +706,17 @@ void RwaMapView::mouseDownArrow(const QMouseEvent *event, const QPointF myPoint)
 
             if(mouseDownArea(myPoint, currentState))
                 return;
+        }
+    }
+
+    if (event->button() == Qt::LeftButton && event->type() == QEvent::MouseButtonDblClick)
+    {
+        if(RwaLandmark *landmark = landmarkAt(myPoint))
+        {
+            currentLandmarkPoint = nullptr;   // the press before this double click started a drag
+            mc->setMouseMode(MapControl::Panning);
+            editLandmark(landmark);
+            return;
         }
     }
 
@@ -542,6 +792,20 @@ void RwaMapView::receiveMouseDownEvent(const QMouseEvent *event, const QPointF m
         RwaUtilities::logLocationCoordinates(myPoint);
 
     currentStatePoint = nullptr;
+
+    // right click on a flag: the landmark's context menu.
+    // the map widget zooms on every other right click (setRightClickConsumed).
+    if(event->button() == Qt::RightButton && event->type() == QEvent::MouseButtonPress)
+    {
+        if(RwaLandmark *landmark = landmarkAt(myPoint))
+        {
+            mc->setRightClickConsumed(true);
+            selectLandmark(landmark);
+            showLandmarkMenu(landmark, event->globalPosition().toPoint());
+        }
+        return;
+    }
+
     switch(tool)
     {
         case RWATOOL_ARROW:
@@ -612,6 +876,7 @@ void RwaMapView::receiveMouseReleaseEvent()
     }
 
     currentEntityPoint = nullptr;
+    currentLandmarkPoint = nullptr;
     currentStatePoint = nullptr;
     currentScenePoint = nullptr;
     editAreaRadius = false;

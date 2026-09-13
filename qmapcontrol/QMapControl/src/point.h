@@ -96,6 +96,10 @@ namespace qmapcontrol
 
         void setLabelVisible(bool isVisible);
 
+        //! RWA Creator: where the label sits relative to the pixmap's top-left corner
+        //! (default 0, 20: directly under a 21 px icon).
+        void setLabelOffset(const QPoint &offset);
+
         QPointF coordinate() const;
 
         virtual QList<QmapPoint*> points();
@@ -150,6 +154,7 @@ namespace qmapcontrol
         QWidget* mywidget;
         QLineEdit *mylineedit;
         QLabel *mylabel;
+        QPoint labelOffset = QPoint(0, 20);
         QPixmap* mypixmap;
         Alignment myalignment;
         int homelevel;

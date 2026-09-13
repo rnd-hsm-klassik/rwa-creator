@@ -461,6 +461,12 @@ QString RwaHeadtrackerConnect::ggaSeedFromHero() const
     return RwaNtrip::gga(lat, lon, 0.0, QDateTime::currentDateTimeUtc());
 }
 
+bool RwaHeadtrackerConnect::positionIsLive(int maxAgeMs) const
+{
+    return m_hasPosition && m_lastPositionAt.isValid()
+        && m_lastPositionAt.msecsTo(QDateTime::currentDateTime()) <= maxAgeMs;
+}
+
 /** ******************************* Stats snapshot ******************************* */
 
 RwaHeadtrackerStats RwaHeadtrackerConnect::stats()

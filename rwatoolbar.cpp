@@ -48,6 +48,8 @@ RwaViewToolbar::RwaViewToolbar(const QString &title, qint32 flags, RwaBackend *b
     {
         connect (this, SIGNAL(sendAssetsVisible(bool)), parent, SLOT(setAssetsVisible(bool)));
         connect (this, SIGNAL(sendRadiiVisible(bool)), parent, SLOT(setRadiiVisible(bool)));
+        connect (this, SIGNAL(sendLandmarksVisible(bool)), parent, SLOT(setLandmarksVisible(bool)));
+        connect (this, SIGNAL(sendRecordLandmark()), parent, SLOT(recordLandmarkAtHero()));
         connect (this, SIGNAL(sendAssetsVisible(bool)), backend, SLOT(receiveShowAssets(bool))); // This is temporary.. not nice connected to 2 slots
         connect (this, SIGNAL(sendRadiiVisible(bool)), backend, SLOT(receiveShowStateRadii(bool)));
         connect (this, SIGNAL(sendStartStopSimulator(bool)), backend, SLOT(startStopSimulator(bool)));
@@ -308,6 +310,16 @@ void RwaViewToolbar::initControls()
     radiiVisibleButton->setToolTip("Show State radii.");
     addWidget(radiiVisibleButton);
 
+    landmarksVisibleButton = new QToolButton(this);
+    landmarksVisibleButton->setCheckable(true);
+    connect (landmarksVisibleButton, SIGNAL(clicked(bool)), this, SLOT(receiveLandmarksVisible(bool)));
+    landmarksVisibleButton->setObjectName("landmarksVisibleButton");
+    landmarksVisibleButton->setIcon(rwaThemedIcon(path+"images/flag.svg"));
+    landmarksVisibleButton->setIconSize(QSize(20,20));
+    landmarksVisibleButton->setFixedSize(QSize(20,20));
+    landmarksVisibleButton->setToolTip("Show Landmarks.");
+    addWidget(landmarksVisibleButton);
+
     startSimulatorButton = new QToolButton(this);
     startSimulatorButton->setCheckable(true);
     connect (startSimulatorButton, SIGNAL(clicked(bool)), this, SLOT(receiveStartSimulator(bool)));
@@ -348,6 +360,16 @@ void RwaViewToolbar::initControls()
     simulateHeadtrackerStepButton->setFixedSize(QSize(20,20));
     simulateHeadtrackerStepButton->setToolTip("Send Step");
     addWidget(simulateHeadtrackerStepButton);
+
+    recordLandmarkButton = new QToolButton(this);
+    recordLandmarkButton->setCheckable(false);
+    connect (recordLandmarkButton, SIGNAL(clicked(bool)), this, SLOT(receiveRecordLandmark(bool)));
+    recordLandmarkButton->setObjectName("recordLandmarkButton");
+    recordLandmarkButton->setIcon(rwaThemedIcon(path+"images/recordLandmarkButton.svg"));
+    recordLandmarkButton->setIconSize(QSize(20,20));
+    recordLandmarkButton->setFixedSize(QSize(20,20));
+    recordLandmarkButton->setToolTip("Record landmark at hero position.");
+    addWidget(recordLandmarkButton);
 
     heroFollowsSceneAndStateButton = new QToolButton(this);
     heroFollowsSceneAndStateButton->setCheckable(true);
@@ -405,6 +427,18 @@ void RwaViewToolbar::receiveCurrentScene(RwaScene *scene)
 void RwaViewToolbar::receiveAssetsVisible(bool assetsVisible)
 {
     emit sendAssetsVisible(assetsVisible);
+}
+
+void RwaViewToolbar::receiveLandmarksVisible(bool landmarksVisible)
+{
+    emit sendLandmarksVisible(landmarksVisible);
+}
+
+void RwaViewToolbar::receiveRecordLandmark(bool onOff)
+{
+    Q_UNUSED(onOff);
+    recordLandmarkButton->setChecked(false);
+    emit sendRecordLandmark();
 }
 
 void RwaViewToolbar::receiveRadiiVisible(bool radiiVisible)

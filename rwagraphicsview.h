@@ -32,6 +32,7 @@ public:
     void drawState(RwaState *state, bool isActive = 0);
     void drawEntity(RwaEntity *entity, bool isActive = 0);
     void drawAsset(RwaAsset1 *item, bool isActive = 0);
+    void drawLandmark(RwaLandmark *landmark, bool isActive = false);
 
     void redrawState(QmapPoint *statePoint);
     void redrawArea(QmapPoint *area);
@@ -52,6 +53,10 @@ public slots:
     void movePixmapsOfCurrentAssetReflection(double dx, double dy, int channel);
     void setAssetsVisible(bool assetsVisible);
     void setRadiiVisible(bool onOff);
+    void setLandmarksVisible(bool onOff);
+    /** Toolbar flag button. Only the Map View records; other views ignore it. */
+    virtual void recordLandmarkAtHero() {}
+    void redrawLandmarks();
     void setEntitiesVisible(bool entitiesVisible);
     void setStatesVisible(bool statesVisible);
     void setStateRadiusVisible(bool radiusVisible);
@@ -103,6 +108,12 @@ protected:
     GeometryLayer *entityLayer;
     GeometryLayer *assetLayer;
     GeometryLayer *assetReflectionLayer;
+    GeometryLayer *landmarkLayer;
+    QPixmap landmarkActivePixmap;   // selection-coloured flag, must outlive the map items
+    QPixmap landmarkPassivePixmap;
+    bool landmarksVisible = false;
+    QmapPoint *currentLandmarkPoint = nullptr;   // the flag under a pressed mouse (drag)
+    RwaLandmark *currentLandmark = nullptr;      // the selected landmark
 
     // selection-colored variants of the asset layer's channel/start point/
     // moving position pixmaps; must outlive the map items, which keep pointers

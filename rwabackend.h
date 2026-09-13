@@ -24,6 +24,7 @@
 #include <QRegularExpression>
 #include "rwascene.h"
 #include "rwaentity.h"
+#include "rwalandmark.h"
 #include "rwasimulator.h"
 #include "httplib.h"
 
@@ -110,6 +111,7 @@ private:
 
     QPointF currentMapCoordinates;
     QList<RwaScene *> scenes;
+    QList<RwaLandmark *> landmarks;
     RwaScene *clipboardStates;
     RwaState *lastTouchedState = nullptr;
     RwaScene *lastTouchedScene = nullptr;
@@ -154,6 +156,16 @@ public slots:
     RwaScene *getSceneAt(qint32 sceneNumber);
     qint32 getNumberOfScenes();
     RwaScene *getScene(QString sceneName);
+    RwaAsset1 *getLastTouchedAssetItem() const { return lastTouchedAssetItem; }
+
+    /** ******************************* Landmarks ******************************* */
+
+    QList<RwaLandmark *> &getLandmarks() { return landmarks; }
+    RwaLandmark *addLandmark(RwaLandmark *landmark);
+    void removeLandmark(RwaLandmark *landmark);
+    void clearLandmarks();
+    /** "Landmark N", unique among the current landmarks. */
+    QString nextLandmarkName() const;
 
     /** *********************************** New/Remove Scene functionality ***************************** */
 
@@ -328,6 +340,7 @@ signals:
     void updateAssets();  // update simulator if assets are updated while simulation runs..
     void newGameLoaded();
     void undoGameLoaded();
+    void sendLandmarksChanged();
     /** completeProjectPath and the paths derived from it were reset (new, unsaved project). */
     void projectPathsChanged();
     void sendRedrawAssets();

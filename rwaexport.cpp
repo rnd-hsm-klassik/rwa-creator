@@ -55,8 +55,33 @@ bool RwaExport::writeFile(QIODevice *device)
     for(int i = 0;i<backend->getNumberOfScenes();i++)
         writeScene(backend->getSceneAt(i));
 
+    // Landmarks (authoring aid): siblings of the scenes under <rwa>, like
+    // <game>. The Player's importer reacts to element names it knows and
+    // ignores these.
+    if(!backend->getLandmarks().isEmpty())
+    {
+        xml.writeStartElement("landmarks");
+        foreach(RwaLandmark *landmark, backend->getLandmarks())
+            writeLandmark(landmark);
+        xml.writeEndElement();
+    }
+
     xml.writeEndDocument();
     return true;
+}
+
+void RwaExport::writeLandmark(RwaLandmark *landmark)
+{
+    xml.writeStartElement("landmark");
+    xml.writeAttribute("name", QString::fromStdString(landmark->objectName()));
+    xml.writeAttribute("lon", QString::number(landmark->getCoordinates()[0], 'f', 8));
+    xml.writeAttribute("lat", QString::number(landmark->getCoordinates()[1], 'f', 8));
+    xml.writeAttribute("description", QString::fromStdString(landmark->description));
+    xml.writeAttribute("captured", QString::fromStdString(landmark->captured));
+    xml.writeAttribute("source", QString::fromStdString(landmark->source));
+    xml.writeAttribute("carrsoln", QString::number(landmark->carrSoln));
+    xml.writeAttribute("haccmm", QString::number(landmark->hAccMm));
+    xml.writeEndElement();
 }
 
 void RwaExport::writeAssetItem1(RwaAsset1 *item)

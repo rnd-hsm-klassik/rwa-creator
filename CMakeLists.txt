@@ -83,6 +83,8 @@ set(RWACREATOR_HEADERS
     rwacastersettings.h
     rwaheadtrackerconnect.h
     rwaheadtrackerview.h
+    rwalandmark.h
+    rwalandmarkdialog.h
     rwantripclient.h
     rwahistory.h
     rwainputdialog.h
@@ -203,6 +205,8 @@ set(RWACREATOR_SOURCES
     rwacastersettings.cpp
     rwaheadtrackerconnect.cpp
     rwaheadtrackerview.cpp
+    rwalandmark.cpp
+    rwalandmarkdialog.cpp
     rwantripclient.cpp
     rwahistory.cpp
     rwainputdialog.cpp
@@ -619,6 +623,7 @@ if(RWA_BUILD_TRACE_TOOLS)
         rwaasset1.cpp
         rwaarea.cpp
         rwalocation1.cpp
+        rwalandmark.cpp
         rwautilities.cpp
         rwaattribute.cpp
         rwaimport.cpp

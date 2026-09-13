@@ -111,6 +111,8 @@ private:
     QToolButton *startSimulatorButton = nullptr;
     QToolButton *stopSimulatorButton = nullptr;
     QToolButton *assetsVisibleButton = nullptr;
+    QToolButton *landmarksVisibleButton = nullptr;
+    QToolButton *recordLandmarkButton = nullptr;
     QToolButton *radiiVisibleButton = nullptr;
     QToolButton *findButton = nullptr;
 
@@ -147,6 +149,8 @@ signals:
     void sendSelectedTool(int tool);
     void sendAssetsVisible(bool assetsVisible);
     void sendRadiiVisible(bool radiiVisible);
+    void sendLandmarksVisible(bool landmarksVisible);
+    void sendRecordLandmark();
     void sendTrashAssets(bool onOff);
     void sendHeroFollowsSceneAndState(bool onOff);
     void sendMoveHero2CurrentState();
@@ -195,6 +199,8 @@ private slots:
     void receiveClickedTool(int tool);
     void receiveAssetsVisible(bool assetsVisible);
     void receiveRadiiVisible(bool radiiVisible);
+    void receiveLandmarksVisible(bool landmarksVisible);
+    void receiveRecordLandmark(bool onOff);
     void receiveStartSimulator(bool startStopSimulator);
     void receiveStopSimulator(bool startStopSimulator);
     void receiveCurrentScene(RwaScene *scene);

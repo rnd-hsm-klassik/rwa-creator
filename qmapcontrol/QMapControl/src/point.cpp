@@ -259,7 +259,12 @@ namespace qmapcontrol
         point -= offset;
 
         QPoint alignedtopleft = alignedPoint(point);
-        mylabel->setGeometry(alignedtopleft.x(), alignedtopleft.y()+20, 100, 20);
+        mylabel->setGeometry(alignedtopleft.x() + labelOffset.x(), alignedtopleft.y() + labelOffset.y(), 100, 20);
+    }
+
+    void QmapPoint::setLabelOffset(const QPoint &offset)
+    {
+        labelOffset = offset;
     }
 
     void QmapPoint::drawWidget(const MapAdapter* mapadapter, const QPoint offset)

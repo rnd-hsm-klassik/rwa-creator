@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Landmarks on the map (`RwaLandmark`, Map View). The flag button in the Map
+  View toolbar records a landmark at the hero's position: the live RTK fix when
+  *Hero Follows RTK Position* is on, otherwise wherever the hero was dragged. A
+  dialog takes name and description and shows how the position was captured (RTK
+  fixed / float / GNSS / by hand, accuracy, time). This data are stored with the
+  landmark. Flags carry their name as a label. Click selects, drag moves,
+  double-click edits, Delete/Backspace removes, and a right-click context menu
+  offers *Move Hero Here* (disabled while the hero follows RTK), *Move
+  "`<asset>`" here* (the selected asset's anchor plus its channel and reflection
+  positions, like a State View drag), *Edit...* and *Delete*. A *Show Landmarks*
+  toggle sits next to *Show Assets*. Every change is an undo step. Stored in the
+  `.rwa` as a `<landmarks>` block next to the scenes (the RWA Player's importer
+  ignores unknown elements, it stays unaffected).
+
+### Changed
+
+- `MapControl` (vendored qmapcontrol, patched): the map view now sees a
+  mouse press before the widget acts on it, and `setRightClickConsumed()`
+  lets a context menu suppress the right-click zoom.
+
 ## [1.6.1] - 2026-09-12
 
 ### Added

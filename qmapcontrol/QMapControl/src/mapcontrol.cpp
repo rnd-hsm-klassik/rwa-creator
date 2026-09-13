@@ -278,6 +278,11 @@ namespace qmapcontrol
 
         layermanager->mouseEvent(evnt);
 
+        // RWA Creator: the view sees the press first, so a right click on one of its
+        // items can open a context menu instead of zooming (setRightClickConsumed).
+        rightClickConsumed = false;
+        emit sendMouseDownEvent(evnt, clickToWorldCoordinate(evnt->pos()));
+
         if (layermanager->layers().size()>0)
         {
             if (evnt->button() == 1)
@@ -285,7 +290,7 @@ namespace qmapcontrol
                 mousepressed = true;
                 pre_click_px = QPoint(evnt->x(), evnt->y());
             }
-            else if (evnt->button() == 2 && mymousemode != None) // zoom in
+            else if (evnt->button() == 2 && mymousemode != None && !rightClickConsumed) // zoom in
             {
                 zoomIn();
             } else if  (evnt->button() == 4 && mymousemode != None) // zoom out
@@ -293,10 +298,11 @@ namespace qmapcontrol
                 zoomOut();
             }
         }
+    }
 
-        // emit(mouseEvent(evnt));
-        //emit(mouseEventCoordinate(evnt, clickToWorldCoordinate(evnt->pos())));
-        emit sendMouseDownEvent(evnt, clickToWorldCoordinate(evnt->pos()));
+    void MapControl::setRightClickConsumed(bool consumed)
+    {
+        rightClickConsumed = consumed;
     }
 
     void MapControl::mouseReleaseEvent(QMouseEvent* evnt)

@@ -242,8 +242,7 @@ void RwaStateView::receiveMouseMoveEvent(const QMouseEvent*, const QPointF myPoi
         if(dragType == RWAPOSITIONTYPE_ASSETSTARTPOINT)
         {
             currentAsset->setStartPosition(tmp);
-            if(RwaMapItem *geo = findAssetItem(currentAsset, dragType))
-                geo->setCoordinate(myPoint);
+            emit backend->sendAssetPositionsChanged();
             setUndoAction("Move Asset start location.");
         }
 

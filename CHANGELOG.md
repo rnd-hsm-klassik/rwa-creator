@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+
+- Correctly assign icons to moving and rotating assets on the maps. The markers
+  now say what they are: the speaker is where an asset sounds, the "star"
+  (`movingAssetAnchor.svg`, the same icon as the asset list's moving badge) is
+  the anchor of a moving or rotating asset (the target of a moving asset, the
+  centre of a rotating one) and the "distance" icon (`movingAssetStart.svg`) is
+  the start of a moving asset.
+
+- A dotted line joins start and target. During simulation, a speaker travels
+  along that line with the channel speakers around it.
+
+- Both the Map View and the State View show all of this (the Map View used to
+  hide the start marker, the State View the travelling one, and the travelling
+  marker wore the star while the speaker sat on the target).
+
+- The star and the start marker are what you drag; the travelling speaker is not
+  draggable. `RwaGraphicsView::assetMarkerPixmap()` is the one place that
+  decides which pixmap a marker gets; `RwaTrajectory` (in `rwamapitem.*`) draws
+  the line - a `QmapPoint` rather than qmapcontrol's `LineString`, because
+  `Layer::clearGeometries()` only deletes point geometries.
   
 - The moving assets icon files are renamed after to better reflect their meaning:
   `audiosourcestartpoint.svg` (the star) is now `movingAssetAnchor.svg`,

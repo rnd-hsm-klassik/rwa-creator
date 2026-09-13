@@ -46,6 +46,7 @@ RwaGraphicsView::RwaGraphicsView(QWidget *parent, RwaScene *scene, QString name)
     statesVisible = false;
     stateRadiusVisible = false;
     assetStartPointsVisible = true;
+    assetMovingPointVisible = true;
     assetReflectionsVisible = true;
     sceneRadiusVisible = false;
 
@@ -84,6 +85,9 @@ RwaGraphicsView::RwaGraphicsView(QWidget *parent, RwaScene *scene, QString name)
     stateRadiusLayer = new GeometryLayer("Radius Layer", mapadapter);
     mc->addLayer(stateRadiusLayer);
 
+    assetTrajectoryLayer = new GeometryLayer("Asset Trajectory Layer", mapadapter);
+    mc->addLayer(assetTrajectoryLayer);
+
     assetLayer = new GeometryLayer("Asset Layer", mapadapter);
     assetLayer->setActivePixmap(QPixmap(path+"images/audiosourceselected.svg").scaled(21, 21, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     assetLayer->setPassivePixmap(QPixmap(path+"images/audiosource.svg").scaled(21, 21, Qt::KeepAspectRatio, Qt::SmoothTransformation));
@@ -100,6 +104,8 @@ RwaGraphicsView::RwaGraphicsView(QWidget *parent, RwaScene *scene, QString name)
     selectedChannelPixmap = rwaRenderRecoloredSvg(path+"images/audiochannelsource.svg", selectionColor, QSize(21, 21), 1.0, assetIconBlue);
     selectedAnchorPixmap = rwaRenderRecoloredSvg(path+"images/movingAssetAnchor.svg", selectionColor, QSize(21, 21), 1.0, assetIconBlue);
     selectedStartPointPixmap = rwaRenderRecoloredSvg(path+"images/movingAssetStart.svg", selectionColor, QSize(21, 21), 1.0, assetIconBlue);
+    trajectoryPen = QPen(QColor(QString::fromLatin1(assetIconBlue)), 1.5, Qt::DotLine, Qt::RoundCap);
+    selectedTrajectoryPen = QPen(selectionColor, 1.5, Qt::DotLine, Qt::RoundCap);
 
     assetReflectionLayer = new GeometryLayer("Asset Reflection Layer", mapadapter);
     assetReflectionLayer->setActivePixmap(QPixmap(path+"images/audioreflectionactive.svg").scaled(21, 21, Qt::KeepAspectRatio, Qt::SmoothTransformation));
@@ -281,6 +287,7 @@ void RwaGraphicsView::setAssetsVisible(bool onOff)
 {
     this->assetsVisible = onOff;
     assetLayer->setVisible(onOff);
+    assetTrajectoryLayer->setVisible(onOff);
     redrawAssets();
 }
 
@@ -357,6 +364,7 @@ void RwaGraphicsView::movePixmapsOfCurrentAsset(double dx, double dy)
     }
 
     moveReflectionPixmapsOfCurrentAsset(dx, dy);
+    updateTrajectories();
 }
 
 void RwaGraphicsView::movePixmapsOfCurrentAssetChannel(double dx, double dy, int channel)
@@ -497,6 +505,7 @@ void RwaGraphicsView::movePixmapsOfCurrentState(double dx, double dy)
                 movePixmapsOfAssetReflections(dx, dy);
         }
     }
+    updateTrajectories();
 }
 
 void RwaGraphicsView::updateAssetPixmaps()
@@ -505,22 +514,16 @@ void RwaGraphicsView::updateAssetPixmaps()
     {
         RwaMapItem *point;
         point = static_cast<RwaMapItem *>(assetLayer->geometries.at(i));
-        bool selected = (point->data == currentAsset);
-        switch(point->getRwaType())
-        {
-            case RWAPOSITIONTYPE_ASSET:
-                point->setPixmap(selected ? assetLayer->getActivePixmap() : assetLayer->getPassivePixmap());
-                break;
-            case RWAPOSITIONTYPE_ASSETCHANNEL:
-                point->setPixmap(selected ? &selectedChannelPixmap : assetLayer->getPixmap3());
-                break;
-            case RWAPOSITIONTYPE_CURRENTASSETPOSITION:
-                point->setPixmap(selected ? &selectedMovingPositionPixmap : assetLayer->getPixmap4());
-                break;
-            case RWAPOSITIONTYPE_ASSETSTARTPOINT:
-                point->setPixmap(selected ? &selectedStartPointPixmap : assetLayer->getPixmap5());
-                break;
-        }
+        RwaAsset1 *asset = static_cast<RwaAsset1 *>(point->data);
+        if(!asset)
+            continue;
+        point->setPixmap(assetMarkerPixmap(asset, point->getRwaType(), asset == currentAsset));
+    }
+
+    for(Geometry *geometry : assetTrajectoryLayer->geometries)
+    {
+        RwaTrajectory *trajectory = static_cast<RwaTrajectory *>(geometry);
+        trajectory->setTrajectoryPen(trajectory->getRwaItem() == currentAsset ? selectedTrajectoryPen : trajectoryPen);
     }
 
     if(assetLayer->isVisible())
@@ -978,35 +981,33 @@ void RwaGraphicsView::drawAsset(RwaAsset1 *item, bool isActive)
     if(item->getMute())
         return;
 
-    QPixmap *channelPixmap = isActive ? &selectedChannelPixmap : assetLayer->getPixmap3();
-    QPixmap *movingPositionPixmap = isActive ? &selectedMovingPositionPixmap : assetLayer->getPixmap4();
-    QPixmap *startPointPixmap = isActive ? &selectedStartPointPixmap : assetLayer->getPixmap5();
-
-    if(isActive)
-        mapItem = new RwaMapItem(QPointF(item->getCoordinates()[0],item->getCoordinates()[1]), item, RWAPOSITIONTYPE_ASSET, assetLayer->getActivePixmap());
-    else
-        mapItem = new RwaMapItem(QPointF(item->getCoordinates()[0],item->getCoordinates()[1]), item, RWAPOSITIONTYPE_ASSET, assetLayer->getPassivePixmap());
-
+    // The asset's own marker, the one to drag: a speaker where the asset sounds. A moving
+    // or rotating asset gets the star instead (the target of the movement, the centre of
+    // rotation), its sound is elsewhere: on the travelling speaker below, or on the
+    // channel speakers rotating around the star.
+    mapItem = new RwaMapItem(QPointF(item->getCoordinates()[0],item->getCoordinates()[1]), item, RWAPOSITIONTYPE_ASSET, assetMarkerPixmap(item, RWAPOSITIONTYPE_ASSET, isActive));
     mapItem->setAllowTouches(true);
     assetLayer->addGeometry(mapItem);
-
-   // if(!backend->isSimulationRunning() && !item->individuellChannelPositions)
-        //item->calculateChannelPositions(); // else they are calculated in the gameloop for visualisation purposes
 
     if(item->getMoveFromStartPosition())
     {
         if(assetStartPointsVisible)
         {
-            mapItem = new RwaMapItem(QPointF(item->getStartPosition()[0], item->getStartPosition()[1]), item, RWAPOSITIONTYPE_ASSETSTARTPOINT, startPointPixmap);
+            mapItem = new RwaMapItem(QPointF(item->getStartPosition()[0], item->getStartPosition()[1]), item, RWAPOSITIONTYPE_ASSETSTARTPOINT, assetMarkerPixmap(item, RWAPOSITIONTYPE_ASSETSTARTPOINT, isActive));
             mapItem->setAllowTouches(true);
             assetLayer->addGeometry(mapItem);
         }
 
+        RwaTrajectory *trajectory = new RwaTrajectory(item, isActive ? selectedTrajectoryPen : trajectoryPen);
+        trajectory->setEndpoints(QPointF(item->getStartPosition()[0], item->getStartPosition()[1]),
+                                 QPointF(item->getCoordinates()[0], item->getCoordinates()[1]));
+        assetTrajectoryLayer->addGeometry(trajectory);
+
         if(backend->isSimulationRunning() && assetMovingPointVisible)
         {
+            // currently sounding location of asset
             QPointF tmp = QPointF(item->getCurrentPosition()[0], item->getCurrentPosition()[1]);
-            //qDebug() << tmp.x() << " " << tmp.y();
-            mapItem = new RwaMapItem(tmp, item, RWAPOSITIONTYPE_CURRENTASSETPOSITION, movingPositionPixmap);
+            mapItem = new RwaMapItem(tmp, item, RWAPOSITIONTYPE_CURRENTASSETPOSITION, assetMarkerPixmap(item, RWAPOSITIONTYPE_CURRENTASSETPOSITION, isActive));
             mapItem->setAllowTouches(false);
             assetLayer->addGeometry(mapItem);
         }
@@ -1017,7 +1018,7 @@ void RwaGraphicsView::drawAsset(RwaAsset1 *item, bool isActive)
         int32_t channelCount = RwaAsset1::channelCountForPlaybackType(item->getPlaybackType());
         for(int32_t i = 0; i < channelCount; i++)
         {
-            mapItem = new RwaMapItem(QPointF(item->channelcoordinates[i][0], item->channelcoordinates[i][1]), item, RWAPOSITIONTYPE_ASSETCHANNEL, channelPixmap, i);
+            mapItem = new RwaMapItem(QPointF(item->channelcoordinates[i][0], item->channelcoordinates[i][1]), item, RWAPOSITIONTYPE_ASSETCHANNEL, assetMarkerPixmap(item, RWAPOSITIONTYPE_ASSETCHANNEL, isActive), i);
             assetLayer->addGeometry(mapItem);
         }
     }
@@ -1058,10 +1059,11 @@ void RwaGraphicsView::redrawAssets()
     if(!currentScene)
         return;
 
-    // always clear both layers: hidden layers still hit-test their geometries,
+    // always clear the layers: hidden layers still hit-test their geometries,
     // so leftovers would keep raw pointers to possibly deleted assets
     assetLayer->clearGeometries();
     assetReflectionLayer->clearGeometries();
+    assetTrajectoryLayer->clearGeometries();
 
     if(assetsVisible && !onlyAssetsOfCurrentStateVisible)
     {
@@ -1136,6 +1138,40 @@ void RwaGraphicsView::updateAssetPositions()
         if(asset && point->getRwaType() == RWAPOSITIONTYPE_REFLECTIONPOSITION)
             moveMarkerTo(point, asset->reflectioncoordinates[point->getChannel()]);
     }
+
+    updateTrajectories();
+}
+
+void RwaGraphicsView::updateTrajectories()
+{
+    for(Geometry *geometry : assetTrajectoryLayer->geometries)
+    {
+        RwaTrajectory *trajectory = static_cast<RwaTrajectory *>(geometry);
+        RwaAsset1 *asset = static_cast<RwaAsset1 *>(trajectory->getRwaItem());
+        if(!asset)
+            continue;
+        trajectory->setEndpoints(QPointF(asset->getStartPosition()[0], asset->getStartPosition()[1]),
+                                 QPointF(asset->getCoordinates()[0], asset->getCoordinates()[1]));
+    }
+}
+
+QPixmap *RwaGraphicsView::assetMarkerPixmap(RwaAsset1 *asset, int rwaType, bool selected)
+{
+    switch(rwaType)
+    {
+        case RWAPOSITIONTYPE_ASSET:
+            if(asset->getMoveFromStartPosition() || asset->getAutoRotate())
+                return selected ? &selectedAnchorPixmap : assetLayer->getPixmap4();
+            return selected ? assetLayer->getActivePixmap() : assetLayer->getPassivePixmap();
+        case RWAPOSITIONTYPE_CURRENTASSETPOSITION:
+            return selected ? assetLayer->getActivePixmap() : assetLayer->getPassivePixmap();
+        case RWAPOSITIONTYPE_ASSETCHANNEL:
+            return selected ? &selectedChannelPixmap : assetLayer->getPixmap3();
+        case RWAPOSITIONTYPE_ASSETSTARTPOINT:
+            return selected ? &selectedStartPointPixmap : assetLayer->getPixmap5();
+        default:
+            return assetLayer->getPassivePixmap();
+    }
 }
 
 RwaMapItem *RwaGraphicsView::findAssetItem(RwaAsset1 *asset, int rwaType, int channel)
@@ -1167,6 +1203,7 @@ void RwaGraphicsView::redrawAssetsOfCurrentState()
 
     assetLayer->clearGeometries();
     assetReflectionLayer->clearGeometries();
+    assetTrajectoryLayer->clearGeometries();
 
     if(currentState->getAssets().empty())
         return;

@@ -39,6 +39,13 @@ public:
     void redrawAsset(QmapPoint *assetPoint);
     void updateStatePixmaps();
     void updateAssetPixmaps();
+    /** The pixmap for an asset's marker of the given RWAPOSITIONTYPE_*: the speaker where
+     *  the asset sounds, the star for the anchor of a moving or rotating asset (the target
+     *  of the movement, the centre of rotation), the start marker of a moving asset, the
+     *  small speaker of a channel. */
+    QPixmap *assetMarkerPixmap(RwaAsset1 *asset, int rwaType, bool selected);
+    /** Moves the dotted start-to-target lines of the moving assets to the model. */
+    void updateTrajectories();
     /** The marker standing for this asset's position of the given RWAPOSITIONTYPE_* (and
      *  channel / reflection number), or null: the layers are rebuilt on every state change,
      *  so nobody keeps a marker pointer across events: look it up again instead. */
@@ -113,6 +120,7 @@ protected:
     GeometryLayer *statesLayer;
     GeometryLayer *stateRadiusLayer;
     GeometryLayer *entityLayer;
+    GeometryLayer *assetTrajectoryLayer; // under assetLayer: the paths of moving assets
     GeometryLayer *assetLayer;
     GeometryLayer *assetReflectionLayer;
     GeometryLayer *landmarkLayer;
@@ -126,7 +134,9 @@ protected:
     // moving position pixmaps; must outlive the map items, which keep pointers
     QPixmap selectedChannelPixmap;
     QPixmap selectedStartPointPixmap;
-    QPixmap selectedMovingPositionPixmap;
+    QPixmap selectedAnchorPixmap; // the star of a selected moving or rotating asset
+    QPen trajectoryPen;
+    QPen selectedTrajectoryPen;
 
     QmapPoint *currentRadiusPoint = nullptr;
     QmapPoint *currentScenePoint = nullptr;

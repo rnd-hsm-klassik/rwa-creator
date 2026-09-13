@@ -21,8 +21,6 @@ RwaMapView::RwaMapView(QWidget* parent, RwaScene *scene, QString name)
     stateLineEditVisible = true;
     assetsVisible = false;
     stateRadiusVisible = false;
-    assetStartPointsVisible = false;
-    assetMovingPointVisible = true;
     assetReflectionsVisible = false;
     sceneRadiusVisible = true;
     statesVisible = true;

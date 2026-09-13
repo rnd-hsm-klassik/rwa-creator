@@ -208,7 +208,6 @@ void RwaStateView::receiveMouseMoveEvent(const QMouseEvent*, const QPointF myPoi
     if(!currentState)
         return;
 
-    RwaMapItem *geo = static_cast<RwaMapItem *>(currentMapItem);
     QPointF lastCoordinate;
     double dx, dy;
     std::vector<double> tmp(2, 0.0);
@@ -217,17 +216,19 @@ void RwaStateView::receiveMouseMoveEvent(const QMouseEvent*, const QPointF myPoi
     if(backend->logCoordinates)
         RwaUtilities::logLocationCoordinates(myPoint);
 
-    if(backend->isSimulationRunning())
-        return;
-
-    if(geo)
+    // Assets, their channels, start points and reflections are dragged while the
+    // simulation runs as well: the runtime reads their positions every tick, so the
+    // sound follows the drag (RwaAsset1::setCoordinates keeps the live position in
+    // step). A state change of the running simulation may select another asset
+    // mid-drag; the drag then ends rather than moving the newly selected one.
+    if(dragType >= 0 && dragAsset == currentAsset)
     {
         if(currentAsset->getLockPosition())
             return;
 
         tmp = {myPoint.x(), myPoint.y()};
 
-        if(geo->getRwaType() == RWAPOSITIONTYPE_ASSET)
+        if(dragType == RWAPOSITIONTYPE_ASSET)
         {
             lastCoordinate = QPointF(currentAsset->getCoordinates()[0], currentAsset->getCoordinates()[1]);
             dx = myPoint.x() - lastCoordinate.x();
@@ -238,42 +239,47 @@ void RwaStateView::receiveMouseMoveEvent(const QMouseEvent*, const QPointF myPoi
             setUndoAction("Move Asset");
         }
 
-        if(geo->getRwaType() == RWAPOSITIONTYPE_ASSETSTARTPOINT)
+        if(dragType == RWAPOSITIONTYPE_ASSETSTARTPOINT)
         {
             currentAsset->setStartPosition(tmp);
-            geo->setCoordinate(myPoint);
+            if(RwaMapItem *geo = findAssetItem(currentAsset, dragType))
+                geo->setCoordinate(myPoint);
             setUndoAction("Move Asset start location.");
         }
 
-        if(geo->getRwaType() == RWAPOSITIONTYPE_ASSETCHANNEL &&
+        if(dragType == RWAPOSITIONTYPE_ASSETCHANNEL &&
              currentAsset->customChannelPositionsEnabled() )
         {
-            lastCoordinate = QPointF(currentAsset->channelcoordinates[geo->getChannel()][0], currentAsset->channelcoordinates[geo->getChannel()][1]);
+            lastCoordinate = QPointF(currentAsset->channelcoordinates[dragChannel][0], currentAsset->channelcoordinates[dragChannel][1]);
             dx = myPoint.x() - lastCoordinate.x();
             dy = myPoint.y() - lastCoordinate.y();
-            currentAsset->setChannelCoordinate(geo->getChannel(), tmp);
+            currentAsset->setChannelCoordinate(dragChannel, tmp);
 
-            currentAsset->hasCustomChannelPosition[geo->getChannel()] = true;
-            geo->setCoordinate(myPoint);
-            emit sendMoveCurrentAssetChannel(dx, dy, geo->getChannel());
+            currentAsset->hasCustomChannelPosition[dragChannel] = true;
+            if(RwaMapItem *geo = findAssetItem(currentAsset, dragType, dragChannel))
+                geo->setCoordinate(myPoint);
+            emit sendMoveCurrentAssetChannel(dx, dy, dragChannel);
             setUndoAction("Move Asset channel position.");
         }
 
-        if(geo->getRwaType() == RWAPOSITIONTYPE_REFLECTIONPOSITION)
+        if(dragType == RWAPOSITIONTYPE_REFLECTIONPOSITION)
         {
-            lastCoordinate = QPointF(currentAsset->reflectioncoordinates[geo->getChannel()][0], currentAsset->reflectioncoordinates[geo->getChannel()][1]);
+            lastCoordinate = QPointF(currentAsset->reflectioncoordinates[dragChannel][0], currentAsset->reflectioncoordinates[dragChannel][1]);
             dx = myPoint.x() - lastCoordinate.x();
             dy = myPoint.y() - lastCoordinate.y();
-            currentAsset->setReflectionCoordinate(geo->getChannel(), tmp);
-            geo->setCoordinate(myPoint);
-            emit sendMoveCurrentAssetReflection(dx, dy, geo->getChannel());
+            currentAsset->setReflectionCoordinate(dragChannel, tmp);
+            if(RwaMapItem *geo = findAssetItem(currentAsset, dragType, dragChannel))
+                geo->setCoordinate(myPoint);
+            emit sendMoveCurrentAssetReflection(dx, dy, dragChannel);
             setUndoAction("Move Asset reflection position.");
         }
 
         return;
     }
 
-    if(editArea)
+    // The state's area is what the running simulation evaluates:
+    // like in the Map View it is edited only while the simulation is stopped.
+    if(editArea && !backend->isSimulationRunning())
     {
         resizeArea(myPoint, currentState);
         emit sendCurrentStateRadiusEdited();
@@ -319,23 +325,17 @@ void RwaStateView::receiveMouseDownEvent(const QMouseEvent *event, const QPointF
         {
             if (assetLayer->geometries.at(i)->isVisible() && assetLayer->geometries.at(i)->Touches(&tmppoint, mapadapter))
             {
-                 currentMapItem = static_cast<RwaMapItem *>(assetLayer->geometries.at(i));
-                 asset = static_cast<RwaAsset1 *>(currentMapItem->data);
+                 RwaMapItem *item = static_cast<RwaMapItem *>(assetLayer->geometries.at(i));
+                 asset = static_cast<RwaAsset1 *>(item->data);
 
-                 if(currentMapItem->getRwaType() != RWAPOSITIONTYPE_ASSETCHANNEL)
+                 if(item->getRwaType() != RWAPOSITIONTYPE_ASSETCHANNEL || asset->customChannelPositionsEnabled())
                  {
+                     dragAsset = asset;
+                     dragType = item->getRwaType();
+                     dragChannel = item->getChannel();
                      emit sendCurrentAsset(asset);
                      mc->setMouseMode(MapControl::None);
                      return;
-                 }
-                 else
-                 {
-                     if(asset->customChannelPositionsEnabled())
-                     {
-                         emit sendCurrentAsset(asset);
-                         mc->setMouseMode(MapControl::None);
-                         return;
-                     }
                  }
              }
          }
@@ -344,9 +344,12 @@ void RwaStateView::receiveMouseDownEvent(const QMouseEvent *event, const QPointF
         {
             if (assetReflectionLayer->geometries.at(i)->isVisible() && assetReflectionLayer->geometries.at(i)->Touches(&tmppoint, mapadapter))
             {
-                 currentMapItem = static_cast<RwaMapItem *>(assetReflectionLayer->geometries.at(i));
-                 asset = static_cast<RwaAsset1 *>(currentMapItem->data);
-                 asset->currentReflection = currentMapItem->getChannel();
+                 RwaMapItem *item = static_cast<RwaMapItem *>(assetReflectionLayer->geometries.at(i));
+                 asset = static_cast<RwaAsset1 *>(item->data);
+                 asset->currentReflection = item->getChannel();
+                 dragAsset = asset;
+                 dragType = item->getRwaType();
+                 dragChannel = item->getChannel();
                  emit sendCurrentAsset(asset);
                  mc->setMouseMode(MapControl::None);
                  return;
@@ -371,7 +374,9 @@ void RwaStateView::receiveMouseReleaseEvent()
     editArea = false;
     mc->setMouseMode(MapControl::Panning);
     currentPoint = nullptr;
-    currentMapItem = nullptr;
+    dragAsset = nullptr;
+    dragType = -1;
+    dragChannel = -1;
     writeUndo();
 }
 

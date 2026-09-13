@@ -20,11 +20,22 @@ public:
 private:
 
     QmapPoint *currentPoint;
-    RwaMapItem *currentMapItem = nullptr;
     CirclePoint *currentRadius;
     RectPoint *currentRect;
     RwaAssetList *assetList;
     RwaAssetAttributeView *assetAttributes;
+
+    // What the mouse grabbed at mouse-down: the asset, the marker's RWAPOSITIONTYPE_*
+    // (-1 = no drag) and its channel / reflection number. Not the marker itself: the
+    // layers are rebuilt on every state change, also by the running simulation, which
+    // deletes the markers - the drag looks its marker up again on every move.
+
+    /** Asset grabbed for dragging */
+    RwaAsset1 *dragAsset = nullptr;
+    /** RWAPOSITIONTYPE_* (-1 = no drag) */
+    int dragType = -1;
+    /** Asset channel / reflection number */
+    int dragChannel = -1;
 
     void zoomIn() override;
     void zoomOut() override;

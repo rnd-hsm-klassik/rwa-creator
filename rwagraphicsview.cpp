@@ -6,11 +6,11 @@
 #include "rwathemedicon.h"
 #include <math.h>
 
-// Pads a rendered flag icon onto a square transparent canvas so that the
-// bottom of the flag pole is at the canvas centre. The tip's place inside
-// images/flag.svg (viewBox 0 -960 960 960) follows from its path: the pole
-// spans x 222.46..266.31 (centre 244.4 -> 0.2546 of the width) and ends at
-// y -442.85 + 288.43 + 15.9 = -138.52 (-> 0.8557 of the height).
+// Pads a rendered flag icon (landmark.svg) onto a square transparent canvas so
+// that the bottom of the flag pole is at the canvas centre. The tip's place
+// inside images/landmark.svg (viewBox 0 -960 960 960) follows from its path:
+// the pole spans x 222.46..266.31 (centre 244.4 -> 0.2546 of the width) and
+// ends at y -442.85 + 288.43 + 15.9 = -138.52 (-> 0.8557 of the height).
 static QPixmap flagMarkerPixmap(const QPixmap &icon)
 {
     const qreal tipX = 0.2546 * icon.width();
@@ -104,8 +104,8 @@ RwaGraphicsView::RwaGraphicsView(QWidget *parent, RwaScene *scene, QString name)
     // padded onto a canvas whose centre is the tip of the flag pole: the tip,
     // not the icon's middle, marks the recorded position.
     landmarkLayer = new GeometryLayer("Landmark Layer", mapadapter);
-    landmarkPassivePixmap = flagMarkerPixmap(QPixmap(path+"images/flag.svg").scaled(21, 21, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-    landmarkActivePixmap = flagMarkerPixmap(rwaRenderRecoloredSvg(path+"images/flag.svg", selectionColor, QSize(21, 21), 1.0, assetIconBlue));
+    landmarkPassivePixmap = flagMarkerPixmap(QPixmap(path+"images/landmark.svg").scaled(21, 21, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    landmarkActivePixmap = flagMarkerPixmap(rwaRenderRecoloredSvg(path+"images/landmark.svg", selectionColor, QSize(21, 21), 1.0, assetIconBlue));
     landmarkLayer->setActivePixmap(landmarkActivePixmap);
     landmarkLayer->setPassivePixmap(landmarkPassivePixmap);
     mc->addLayer(landmarkLayer);

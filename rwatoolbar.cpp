@@ -314,7 +314,7 @@ void RwaViewToolbar::initControls()
     landmarksVisibleButton->setCheckable(true);
     connect (landmarksVisibleButton, SIGNAL(clicked(bool)), this, SLOT(receiveLandmarksVisible(bool)));
     landmarksVisibleButton->setObjectName("landmarksVisibleButton");
-    landmarksVisibleButton->setIcon(rwaThemedIcon(path+"images/flag.svg"));
+    landmarksVisibleButton->setIcon(rwaThemedIcon(path+"images/landmark.svg"));
     landmarksVisibleButton->setIconSize(QSize(20,20));
     landmarksVisibleButton->setFixedSize(QSize(20,20));
     landmarksVisibleButton->setToolTip("Show Landmarks.");

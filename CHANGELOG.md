@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.4] - 2026-09-14
+
 ### Changed
 
 - Correctly assign icons to moving and rotating assets on the maps. The markers
@@ -16,8 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   centre of a rotating one) and the "distance" icon (`movingAssetStart.svg`) is
   the start of a moving asset.
 
-- A dotted line joins start and target. During simulation, a speaker travels
-  along that line with the channel speakers around it.
+- A dotted line joins start and target of a moving asset. During simulation, a
+  speaker travels along that line with the channel speakers around it.
 
 - Both the Map View and the State View show all of this (the Map View used to
   hide the start marker, the State View the travelling one, and the travelling

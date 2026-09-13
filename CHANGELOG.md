@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Assets can be moved while the simulation runs. In the State View an asset, its
+  channels, its start point and its reflections are dragged as before, and a
+  landmark's *Move "`<asset>`" here* works as well; the running simulation
+  spatialises the asset from its new position at once, so distances can be tuned
+  by ear. `RwaAsset1::setCoordinates` now keeps the runtime's live position
+  (`currentPosition`) in step for an asset that is not travelling; a travelling
+  asset's path shifts with its end point and is re-planned on the next
+  activation. Unchanged: the state area is edited only while the simulation is
+  stopped (like in the Map View), and deleting is refused. No change to
+  `RwaRuntime`.
+
+- The asset markers are no longer rebuilt on every tick of the simulation. The
+  runtime's per-tick signal now moves the existing markers in place
+  (`RwaGraphicsView::updateAssetPositions()`, connected in the base class, so
+  the State View animates travelling assets and rotating channels as well); the
+  layers are rebuilt on simulation start and stop, where the moving-position
+  markers appear and disappear, and on state changes as before. The State View's
+  drag remembers what it grabbed (asset, marker type, channel) instead of a
+  pointer to the marker, so a rebuild during a drag (a state change of the
+  running simulation) no longer leaves it with a deleted marker; a drag ends if
+  such a state change selected another asset. The simulator's unconnected relay
+  of the runtime's redraw signal is gone.
+
 ## [1.6.2] - 2026-09-13
 
 ### Added

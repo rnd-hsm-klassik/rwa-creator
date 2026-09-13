@@ -343,7 +343,12 @@ signals:
     void sendLandmarksChanged();
     /** completeProjectPath and the paths derived from it were reset (new, unsaved project). */
     void projectPathsChanged();
+    /** Rebuild the asset markers of every map: simulation start and stop, where the
+     *  moving-position markers appear and disappear. */
     void sendRedrawAssets();
+    /** One tick of the simulation moved assets or channels: the maps move their
+     *  markers in place, nothing is rebuilt (RwaGraphicsView::updateAssetPositions). */
+    void sendAssetPositionsChanged();
     void sendEntityPosition(vector<double> position);
     void sendStatePosition(QPointF position);
     void stopServer(int i);

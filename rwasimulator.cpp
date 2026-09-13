@@ -70,8 +70,10 @@ RwaSimulator::RwaSimulator(QObject *parent, RwaBackend *backend) :
     connect (runtime, SIGNAL(sendSelectedState(RwaState *)),
                  this, SLOT(receiveCurrentStateFromRuntime(RwaState *)));
 
+    // Every tick the runtime has moved travelling assets and rotated channels;
+    // the maps move their markers in place (the layers are rebuilt on start and stop only).
     connect (runtime, SIGNAL(sendRedrawAssets()),
-                 this, SLOT(receiveRedrawAssetsFromRuntime()));
+                 backend, SIGNAL(sendAssetPositionsChanged()));
 
     QObject::connect(registerPath, SIGNAL(data(QVariant) ), this, SLOT( receiveRegisterMessage(QVariant)) );
     QObject::connect(positionPath, SIGNAL(data(QVariant) ), this, SLOT( receivePositionMessage(QVariant)) );
@@ -85,11 +87,6 @@ RwaSimulator::~RwaSimulator()
     delete ap;
     foreach(oscDevice *device, devices)
         delete (device);
-}
-
-void RwaSimulator::receiveRedrawAssetsFromRuntime()
-{
-    emit sendRedrawAssets();
 }
 
 void RwaSimulator::receiveCurrentSceneFromRuntime(RwaScene *scene)
@@ -382,6 +379,7 @@ void RwaSimulator::startRwaSimulation()
     simulationIsRunning = true;
     sendSelectedScene2Devices();
     emit sendSimulationRunningChanged(true);
+    emit backend->sendRedrawAssets(); // the maps add the moving-position markers
 }
 
 void RwaSimulator::sendMasterFade(float target, int milliseconds)
@@ -474,6 +472,7 @@ void RwaSimulator::finishStopRwaSimulation()
     simulationIsRunning = false;
     stopInProgress = false;
     emit sendSimulationRunningChanged(false);
+    emit backend->sendRedrawAssets(); // the maps drop the moving-position markers
 
     if(startPending)
     {
@@ -607,5 +606,4 @@ void RwaSimulator::updateRwaGameState()
 {
     RwaEntity *entity = entities.front();
     runtime->update(entity);
-    emit backend->sendRedrawAssets();
 }

@@ -104,9 +104,6 @@ RwaMapView::RwaMapView(QWidget* parent, RwaScene *scene, QString name)
     connect(this, SIGNAL(sendCurrentSceneRadiusEdited()),
             backend, SLOT(receiveCurrentSceneRadiusEdited()));
 
-    connect(backend, SIGNAL(sendRedrawAssets()),
-              this, SLOT(redrawAssets()));
-
     connect(backend, SIGNAL(sendCurrentStateRadiusEdited()),
               this, SLOT(receiveUpdateCurrentStateRadius()));
 

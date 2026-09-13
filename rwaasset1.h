@@ -113,7 +113,7 @@ public:
     RwaState *myState;
     RwaScene *myScene;
 
-    void moveMyChildren(double dx, double dy);
+    void moveMyChildren(double dx, double dy) override;
     void copyAttributes(RwaAsset1 *dest);
     void calculateChannelPositions();
 
@@ -162,6 +162,9 @@ public:
 
     vector<double> getCurrentPosition() const;
     void setCurrentPosition(const vector<double> &value);
+
+    /** Also moves the live position of an asset that is not travelling, see the definition. */
+    void setCoordinates(const vector<double> &value) override;
 
     float getChannelRadius() const;
     void setChannelRadius(float value);

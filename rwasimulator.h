@@ -103,7 +103,6 @@ public:
 
 signals:
     void updateScene();
-    void sendRedrawAssets();
     void sendAudioDevicesChanged();
 
     /** The simulation was started or stopped, no matter from where: the toolbar
@@ -116,7 +115,6 @@ signals:
     void sendSelectedState(RwaState *state);
 
 public slots:
-    void receiveRedrawAssetsFromRuntime();
     void receiveCurrentSceneFromRuntime(RwaScene *scene);
     void receiveCurrentStateFromRuntime(RwaState *state);
     void receiveNewGameSignal();

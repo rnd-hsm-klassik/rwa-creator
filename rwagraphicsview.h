@@ -39,6 +39,10 @@ public:
     void redrawAsset(QmapPoint *assetPoint);
     void updateStatePixmaps();
     void updateAssetPixmaps();
+    /** The marker standing for this asset's position of the given RWAPOSITIONTYPE_* (and
+     *  channel / reflection number), or null: the layers are rebuilt on every state change,
+     *  so nobody keeps a marker pointer across events: look it up again instead. */
+    RwaMapItem *findAssetItem(RwaAsset1 *asset, int rwaType, int channel = -1);
 
     bool mouseDownArea(QPointF myPoint, RwaArea *currentArea);
     void resizeArea(QPointF myPoint, RwaArea *currentArea);
@@ -68,6 +72,9 @@ public slots:
     void updateTileCache();
 
     void redrawAssets();
+    /** Moves the existing asset markers to where the model says they are, without
+     *  rebuilding the layers (one tick of the simulation). */
+    void updateAssetPositions();
     void redrawAssetsOfCurrentState();
     void redrawRadiusOfCurrentState();
     void redrawStates();

@@ -30,6 +30,13 @@ RwaGraphicsView::RwaGraphicsView(QWidget *parent, RwaScene *scene, QString name)
 {
     QString path = backend->completeBundlePath;
 
+    // Simulation start and stop rebuild the markers (moving-position markers come and go);
+    // every tick in between only moves them.
+    connect(backend, SIGNAL(sendRedrawAssets()),
+            this, SLOT(redrawAssets()));
+    connect(backend, SIGNAL(sendAssetPositionsChanged()),
+            this, SLOT(updateAssetPositions()));
+
     stateLineEditVisible = false;
     entityLineEditVisible = false;
     assetLineEditVisible = false;
@@ -1075,6 +1082,72 @@ void RwaGraphicsView::redrawAssets()
 
     if(assetsVisible && onlyAssetsOfCurrentStateVisible)
         redrawAssetsOfCurrentState();
+}
+
+// Moves a marker only when the model position differs from the one it shows,
+// so a tick that changed nothing repaints nothing.
+static void moveMarkerTo(QmapPoint *point, const std::vector<double> &position)
+{
+    if(position.size() < 2)
+        return;
+    const QPointF target(position[0], position[1]);
+    if(point->coordinate() == target)
+        return;
+    point->setCoordinate(target);
+}
+
+/**
+ * Called on every tick of the simulation: the runtime moved travelling assets
+ * and rotated channels, and a drag may have moved anything. The markers follow
+ * the model in place. Adding and removing markers (assets added or removed,
+ * simulation started or stopped) stays with redrawAssets().
+ */
+void RwaGraphicsView::updateAssetPositions()
+{
+    for(Geometry *geometry : assetLayer->geometries)
+    {
+        RwaMapItem *point = static_cast<RwaMapItem *>(geometry);
+        RwaAsset1 *asset = static_cast<RwaAsset1 *>(point->data);
+        if(!asset)
+            continue;
+        switch(point->getRwaType())
+        {
+            case RWAPOSITIONTYPE_ASSET:
+                moveMarkerTo(point, asset->getCoordinates());
+                break;
+            case RWAPOSITIONTYPE_ASSETSTARTPOINT:
+                moveMarkerTo(point, asset->getStartPosition());
+                break;
+            case RWAPOSITIONTYPE_CURRENTASSETPOSITION:
+                moveMarkerTo(point, asset->getCurrentPosition());
+                break;
+            case RWAPOSITIONTYPE_ASSETCHANNEL:
+                moveMarkerTo(point, asset->channelcoordinates[point->getChannel()]);
+                break;
+            default:
+                break;
+        }
+    }
+
+    for(Geometry *geometry : assetReflectionLayer->geometries)
+    {
+        RwaMapItem *point = static_cast<RwaMapItem *>(geometry);
+        RwaAsset1 *asset = static_cast<RwaAsset1 *>(point->data);
+        if(asset && point->getRwaType() == RWAPOSITIONTYPE_REFLECTIONPOSITION)
+            moveMarkerTo(point, asset->reflectioncoordinates[point->getChannel()]);
+    }
+}
+
+RwaMapItem *RwaGraphicsView::findAssetItem(RwaAsset1 *asset, int rwaType, int channel)
+{
+    GeometryLayer *layer = (rwaType == RWAPOSITIONTYPE_REFLECTIONPOSITION) ? assetReflectionLayer : assetLayer;
+    for(Geometry *geometry : layer->geometries)
+    {
+        RwaMapItem *point = static_cast<RwaMapItem *>(geometry);
+        if(point->data == asset && point->getRwaType() == rwaType && point->getChannel() == channel)
+            return point;
+    }
+    return nullptr;
 }
 
 void RwaGraphicsView::redrawRadiusOfCurrentState()

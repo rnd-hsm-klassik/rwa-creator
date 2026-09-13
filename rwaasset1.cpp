@@ -674,6 +674,20 @@ void RwaAsset1::setCurrentPosition(const std::vector<double> &value)
     currentPosition = value;
 }
 
+/**
+ * The runtime spatialises an active asset from currentPosition, which it sets when the
+ * asset is activated (RwaRuntime::sendInitValues2pd). So that an asset moved in the
+ * editor while the simulation runs is heard from where it now sits, the live position
+ * follows the coordinates - unless the asset is travelling from its start position, then
+ * RwaRuntime::sendData2Asset owns it until it arrives.
+ */
+void RwaAsset1::setCoordinates(const std::vector<double> &value)
+{
+    RwaLocation1::setCoordinates(value);
+    if(reachedEndPosition)
+        currentPosition = value;
+}
+
 std::vector<double> RwaAsset1::getStartPosition() const
 {
     return startPosition;

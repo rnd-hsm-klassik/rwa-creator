@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+  
+- The moving assets icon files are renamed after to better reflect their meaning:
+  `audiosourcestartpoint.svg` (the star) is now `movingAssetAnchor.svg`,
+  `audiosourcestartpoint1.svg` is now `movingAssetStart.svg`.
+
 ## [1.6.3] - 2026-09-13
 
 ### Changed

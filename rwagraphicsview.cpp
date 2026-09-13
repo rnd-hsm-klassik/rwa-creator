@@ -88,8 +88,8 @@ RwaGraphicsView::RwaGraphicsView(QWidget *parent, RwaScene *scene, QString name)
     assetLayer->setActivePixmap(QPixmap(path+"images/audiosourceselected.svg").scaled(21, 21, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     assetLayer->setPassivePixmap(QPixmap(path+"images/audiosource.svg").scaled(21, 21, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     assetLayer->setPixmap3(QPixmap(path+"images/audiochannelsource.svg").scaled(21, 21, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-    assetLayer->setPixmap4(QPixmap(path+"images/audiosourcestartpoint.svg").scaled(21, 21, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-    assetLayer->setPixmap5(QPixmap(path+"images/audiosourcestartpoint1.svg").scaled(21, 21, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    assetLayer->setPixmap4(QPixmap(path+"images/movingAssetAnchor.svg").scaled(21, 21, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    assetLayer->setPixmap5(QPixmap(path+"images/movingAssetStart.svg").scaled(21, 21, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     mc->addLayer(assetLayer);
 
     // channel/start point/moving position icons of the selected asset get the
@@ -98,8 +98,8 @@ RwaGraphicsView::RwaGraphicsView(QWidget *parent, RwaScene *scene, QString name)
     QColor selectionColor("#F19E39");
     QByteArray assetIconBlue("#2854C5");
     selectedChannelPixmap = rwaRenderRecoloredSvg(path+"images/audiochannelsource.svg", selectionColor, QSize(21, 21), 1.0, assetIconBlue);
-    selectedMovingPositionPixmap = rwaRenderRecoloredSvg(path+"images/audiosourcestartpoint.svg", selectionColor, QSize(21, 21), 1.0, assetIconBlue);
-    selectedStartPointPixmap = rwaRenderRecoloredSvg(path+"images/audiosourcestartpoint1.svg", selectionColor, QSize(21, 21), 1.0, assetIconBlue);
+    selectedAnchorPixmap = rwaRenderRecoloredSvg(path+"images/movingAssetAnchor.svg", selectionColor, QSize(21, 21), 1.0, assetIconBlue);
+    selectedStartPointPixmap = rwaRenderRecoloredSvg(path+"images/movingAssetStart.svg", selectionColor, QSize(21, 21), 1.0, assetIconBlue);
 
     assetReflectionLayer = new GeometryLayer("Asset Reflection Layer", mapadapter);
     assetReflectionLayer->setActivePixmap(QPixmap(path+"images/audioreflectionactive.svg").scaled(21, 21, Qt::KeepAspectRatio, Qt::SmoothTransformation));

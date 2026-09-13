@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.3] - 2026-09-13
+
 ### Changed
 
 - Assets can be moved while the simulation runs. In the State View an asset, its
